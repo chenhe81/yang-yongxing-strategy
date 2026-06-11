@@ -1,145 +1,195 @@
 #!/bin/bash
-# 三设备定时任务部署助手
-# 孔明（本机）| 刘秀（10.26.0.5）| 凤雏（10.26.0.7）
+# ═══════════════════════════════════════════════════════════════
+# 三设备定时任务部署 — 混合架构
+#
+# 数据层: 系统 cron（裸 Python，毫秒级执行）
+# 汇报层: OpenClaw cron（AI 理解分析，推送到飞书）
+#
+# 用法:
+#   bash setup_cron.sh                 → 显示全部
+#   bash setup_cron.sh fengchu         → 凤雏(10.26.0.7)
+#   bash setup_cron.sh liuxiu          → 刘秀(10.26.0.5)
+#   bash setup_cron.sh kongming        → 孔明(本机)
+#   bash setup_cron.sh openclaw        → OpenClaw 汇报层
+# ═══════════════════════════════════════════════════════════════
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-show_kongming() {
+SEP="────────────────────────────────────────────────────────"
+
+show_fengchu() {
     echo ""
-    echo "╔══════════════════════════════════════════════╗"
-    echo "║  孔明（本机）— 数据聚合 + 对比复盘           ║"
-    echo "║  部署到: $(hostname)                        ║"
-    echo "╚══════════════════════════════════════════════╝"
+    echo "$SEP"
+    echo "  凤雏（10.26.0.7）— 杨永兴隔夜套利"
+    echo "  部署：系统 cron"
+    echo "$SEP"
     echo ""
-    echo "请手动执行以下命令来安装 cron："
+    echo "步骤1：将项目复制到凤雏"
+    echo "  scp -r $PROJECT_DIR chenhe@10.26.0.7:~/"
     echo ""
-    echo "  crontab -e"
+    echo "步骤2：SSH 登录凤雏安装依赖"
+    echo "  ssh chenhe@10.26.0.7"
+    echo "  pip install akshare pandas requests pyyaml"
+    echo "  mkdir -p ~/股票市场扫描规则/logs"
     echo ""
-    echo "添加以下内容："
+    echo "步骤3：在凤雏上设置系统 cron（crontab -e）"
     echo ""
-    echo "============================================"
-    cat "$PROJECT_DIR/cron_config/kongming_cron.txt"
-    echo "============================================"
+    echo "  # ── 凤雏（杨永兴隔夜套利）──"
+    echo "  # 09:35 卖出昨日持仓（开盘价 +3%止盈 / -2%止损 / 10:00时间止损）"
+    echo "  35 09 * * 1-5 cd ~/股票市场扫描规则 && python3 run_morning_sell.py >> logs/morning_sell.log 2>&1"
     echo ""
-    echo "先决条件："
-    echo "1. 配置 SSH 免密登录到刘秀和凤雏:"
-    echo "   ssh-copy-id chenhe@10.26.0.5"
-    echo "   ssh-copy-id chenhe@10.26.0.7"
-    echo "2. 确保本机 output/ 目录已创建"
+    echo "  # 14:00 全市场技术面日筛 + 模拟买入"
+    echo "  00 14 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy fengchu >> logs/fengchu.log 2>&1"
     echo ""
 }
 
 show_liuxiu() {
     echo ""
-    echo "╔══════════════════════════════════════════════╗"
-    echo "║  刘秀（10.26.0.5）— SEPA + 基本面周筛       ║"
-    echo "╚══════════════════════════════════════════════╝"
+    echo "$SEP"
+    echo "  刘秀（10.26.0.5）— SEPA 基本面周筛"
+    echo "  部署：系统 cron"
+    echo "$SEP"
     echo ""
-    echo "部署步骤："
-    echo "1. 将项目复制到刘秀："
-    echo "   scp -r $PROJECT_DIR chenhe@10.26.0.5:~/"
-    echo ""
-    echo "2. SSH 登录刘秀："
-    echo "   ssh chenhe@10.26.0.5"
-    echo ""
-    echo "3. 在刘秀上安装依赖："
-    echo "   pip install akshare pandas pyyaml requests"
-    echo ""
-    echo "4. 在刘秀上设置 cron："
-    echo "   crontab -e"
-    echo ""
-    echo "添加以下内容："
-    echo ""
-    echo "============================================"
-    cat "$PROJECT_DIR/cron_config/liuxiu_cron.txt"
-    echo "============================================"
-    echo ""
-}
-
-show_fengchu() {
-    echo ""
-    echo "╔══════════════════════════════════════════════╗"
-    echo "║  凤雏（10.26.0.7）— 杨永兴日筛 + 隔夜套利   ║"
-    echo "╚══════════════════════════════════════════════╝"
-    echo ""
-    echo "部署步骤："
-    echo "1. 将项目复制到凤雏："
-    echo "   scp -r $PROJECT_DIR chenhe@10.26.0.7:~/"
-    echo ""
-    echo "2. SSH 登录凤雏："
-    echo "   ssh chenhe@10.26.0.7"
-    echo ""
-    echo "3. 在凤雏上安装依赖："
-    echo "   pip install akshare pandas pyyaml requests"
-    echo ""
-    echo "4. 在凤雏上设置 cron："
-    echo "   crontab -e"
-    echo ""
-    echo "添加以下内容："
-    echo ""
-    echo "============================================"
-    cat "$PROJECT_DIR/cron_config/fengchu_cron.txt"
-    echo "============================================"
-    echo ""
-}
-
-show_deploy_all() {
-    echo "============================================"
-    echo "  全量部署"
-    echo "============================================"
-    echo ""
-    echo "第1步：部署到凤雏（10.26.0.7）"
-    echo "  scp -r $PROJECT_DIR chenhe@10.26.0.7:~/"
-    echo ""
-    echo "第2步：部署到刘秀（10.26.0.5）"
+    echo "步骤1：将项目复制到刘秀"
     echo "  scp -r $PROJECT_DIR chenhe@10.26.0.5:~/"
     echo ""
-    echo "第3步：登录各设备安装依赖 + 设置 cron"
-    echo "  参考对应设备的配置说明"
+    echo "步骤2：SSH 登录刘秀安装依赖"
+    echo "  ssh chenhe@10.26.0.5"
+    echo "  pip install akshare pandas requests pyyaml"
+    echo "  mkdir -p ~/股票市场扫描规则/logs"
     echo ""
-    echo "第4步：在本机配置 SSH 免密 + 安装孔明 cron"
+    echo "步骤3：在刘秀上设置系统 cron（crontab -e）"
+    echo ""
+    echo "  # ── 刘秀（SEPA 基本面周筛）──"
+    echo "  # 每日 08:30 增量检查（新闻/公告/财报）"
+    echo "  30 08 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu --incremental >> logs/liuxiu_daily.log 2>&1"
+    echo ""
+    echo "  # 周日 21:00 全量重筛"
+    echo "  00 21 * * 0 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu >> logs/liuxiu_weekly.log 2>&1"
+    echo ""
+}
+
+show_kongming() {
+    echo ""
+    echo "$SEP"
+    echo "  孔明（本机）— 数据聚合 + 对比复盘"
+    echo "  部署：系统 cron"
+    echo "$SEP"
+    echo ""
+    echo "先决条件：配置 SSH 免密登录"
     echo "  ssh-copy-id chenhe@10.26.0.7"
     echo "  ssh-copy-id chenhe@10.26.0.5"
+    echo ""
+    echo "设置系统 cron（crontab -e）"
+    echo ""
+    echo "  # ── 孔明（数据聚合）──"
+    echo "  # 15:30 从凤雏拉取今日扫描结果"
+    echo "  30 15 * * 1-5 cd $PROJECT_DIR && scp chenhe@10.26.0.7:~/股票市场扫描规则/output/fengchu/candidates/*.json output/fengchu/candidates/ >> logs/fetch.log 2>&1"
+    echo ""
+    echo "  # 15:35 从凤雏拉取交易记录"
+    echo "  35 15 * * 1-5 cd $PROJECT_DIR && scp chenhe@10.26.0.7:~/股票市场扫描规则/data/trades/fengchu_*.json data/trades/ >> logs/fetch.log 2>&1"
+    echo ""
+    echo "  # 16:00 生成双策略对比报告"
+    echo "  00 16 * * 1-5 cd $PROJECT_DIR && python3 run_scan.py --compare >> logs/compare.log 2>&1"
+    echo ""
+    echo "  # 周日 22:00 合并核心池"
+    echo "  00 22 * * 0 cd $PROJECT_DIR && python3 run_scan.py --merge-pools >> logs/merge.log 2>&1"
+    echo ""
+    echo "  # 配置 Dify API Key 后自动上传每日报告"
+    echo "  export DIFY_API_KEY=\"your-key\""
+    echo ""
+}
+
+show_openclaw() {
+    echo ""
+    echo "$SEP"
+    echo "  OpenClaw — AI 汇报层"
+    echo "  部署：openclaw cron add"
+    echo "$SEP"
+    echo ""
+    echo "前提：OpenClaw Gateway 正在运行，已连接飞书频道"
+    echo ""
+    echo "凤雏复盘（交易日 10:00 发送结果到飞书）："
+    echo ""
+    echo "openclaw cron add \\"
+    echo "  --name \"凤雏早盘复盘\" \\"
+    echo "  --cron \"0 10 * * 1-5\" \\"
+    echo "  --session isolated \\"
+    echo "  --message \"读取 ~/股票市场扫描规则/output/fengchu/trades/ 下的最新交易记录，"
+    echo "             生成今日凤雏早盘卖出复盘报告。"
+    echo "             报告格式："
+    echo "             1. 今日卖出股票列表（盈亏%）"
+    echo "             2. 累计收益"
+    echo "             3. 当前持仓（如有）\" \\"
+    echo "  --announce --channel feishu --to \"user:me\""
+    echo ""
+    echo ""
+    echo "凤雏收盘复盘（交易日 15:30）："
+    echo ""
+    echo "openclaw cron add \\"
+    echo "  --name \"凤雏收盘复盘\" \\"
+    echo "  --cron \"30 15 * * 1-5\" \\"
+    echo "  --session isolated \\"
+    echo "  --message \"读取 ~/股票市场扫描规则/output/fengchu/candidates/ 和 trades/ 下的最新文件，"
+    echo "             生成今日凤雏策略收盘复盘报告。"
+    echo "             包含今日筛选结果、买入记录、累计盈亏\" \\"
+    echo "  --announce --channel feishu --to \"user:me\""
+    echo ""
+    echo ""
+    echo "周报（周日 22:30）："
+    echo ""
+    echo "openclaw cron add \\"
+    echo "  --name \"双策略周报\" \\"
+    echo "  --cron \"30 22 * * 0\" \\"
+    echo "  --session isolated \\"
+    echo "  --message \"读取 ~/股票市场扫描规则/reports/comparison/ 下的对比报告，"
+    echo "             生成本周双策略战绩周报。"
+    echo "             对比凤雏日筛 vs 刘秀周筛的总收益率、胜率\" \\"
+    echo "  --announce --channel feishu --to \"user:me\""
+    echo ""
+}
+
+show_all() {
+    echo "╔══════════════════════════════════════════════════════╗"
+    echo "║  股票市场扫描系统 — 完整部署手册                      ║"
+    echo "║  数据层：系统 cron（三台设备）                       ║"
+    echo "║  汇报层：OpenClaw cron（AI推送到飞书）                 ║"
+    echo "╚══════════════════════════════════════════════════════╝"
+    echo ""
+    show_fengchu
+    echo ""
+    echo "════════════════════════════════════════════════════"
+    echo ""
+    show_liuxiu
+    echo ""
+    echo "════════════════════════════════════════════════════"
+    echo ""
+    show_kongming
+    echo ""
+    echo "════════════════════════════════════════════════════"
+    echo ""
+    show_openclaw
+    echo ""
+    echo "════════════════════════════════════════════════════"
+    echo ""
+    echo "部署顺序："
+    echo "  第1步：凤雏（10.26.0.7）— 系统 cron"
+    echo "  第2步：刘秀（10.26.0.5）— 系统 cron"
+    echo "  第3步：孔明（本机）— 系统 cron（需 ssh-copy-id）"
+    echo "  第4步：OpenClaw（本机）— openclaw cron add"
     echo ""
 }
 
 case "${1:-all}" in
-    kongming|local|本机)
-        show_kongming
-        ;;
-    liuxiu|0.5)
-        show_liuxiu
-        ;;
-    fengchu|0.7)
-        show_fengchu
-        ;;
-    all)
-        show_kongming
-        echo ""
-        echo "────────────────────────────────────────────"
-        echo ""
-        show_liuxiu
-        echo ""
-        echo "────────────────────────────────────────────"
-        echo ""
-        show_fengchu
-        echo ""
-        echo "────────────────────────────────────────────"
-        echo ""
-        show_deploy_all
-        ;;
+    fengchu|0.7) show_fengchu ;;
+    liuxiu|0.5)  show_liuxiu ;;
+    kongming|local|本机) show_kongming ;;
+    openclaw|ai) show_openclaw ;;
+    all) show_all ;;
     help|--help|-h)
-        echo "用法: bash $0 [kongming|liuxiu|fengchu|all]"
-        echo ""
-        echo "  kongming  - 本机（孔明）cron 配置说明"
-        echo "  liuxiu    - 10.26.0.5（刘秀）部署说明"
-        echo "  fengchu   - 10.26.0.7（凤雏）部署说明"
-        echo "  all       - 全部（默认）"
+        echo "用法: bash $0 [fengchu|liuxiu|kongming|openclaw|all]"
+        exit 0
         ;;
-    *)
-        echo "未知参数: $1"
-        echo "用法: bash $0 [kongming|liuxiu|fengchu|all]"
-        exit 1
-        ;;
+    *) echo "未知参数: $1（使用 bash $0 help 查看帮助）"; exit 1 ;;
 esac

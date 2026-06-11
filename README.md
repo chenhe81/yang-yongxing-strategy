@@ -112,7 +112,140 @@
 
 ---
 
-## 快速开始
+## 部署方式
+
+采用**混合架构**：
+- **数据层** → 各设备系统 cron，裸 Python 直接执行，毫秒级
+- **汇报层** → OpenClaw cron，AI 读取结果后推送到飞书
+
+╔══════════════════════════════════════════════════════╗
+║  股票市场扫描系统 — 完整部署手册                      ║
+║  数据层：系统 cron（三台设备）                       ║
+║  汇报层：OpenClaw cron（AI推送到飞书）                 ║
+╚══════════════════════════════════════════════════════╝
+
+
+────────────────────────────────────────────────────────
+  凤雏（10.26.0.7）— 杨永兴隔夜套利
+  部署：系统 cron
+────────────────────────────────────────────────────────
+
+步骤1：将项目复制到凤雏
+  scp -r /Users/chenhe/Documents/股票市场扫描规则 chenhe@10.26.0.7:~/
+
+步骤2：SSH 登录凤雏安装依赖
+  ssh chenhe@10.26.0.7
+  pip install akshare pandas requests pyyaml
+  mkdir -p ~/股票市场扫描规则/logs
+
+步骤3：在凤雏上设置系统 cron（crontab -e）
+
+  # ── 凤雏（杨永兴隔夜套利）──
+  # 09:35 卖出昨日持仓（开盘价 +3%止盈 / -2%止损 / 10:00时间止损）
+  35 09 * * 1-5 cd ~/股票市场扫描规则 && python3 run_morning_sell.py >> logs/morning_sell.log 2>&1
+
+  # 14:00 全市场技术面日筛 + 模拟买入
+  00 14 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy fengchu >> logs/fengchu.log 2>&1
+
+
+════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────
+  刘秀（10.26.0.5）— SEPA 基本面周筛
+  部署：系统 cron
+────────────────────────────────────────────────────────
+
+步骤1：将项目复制到刘秀
+  scp -r /Users/chenhe/Documents/股票市场扫描规则 chenhe@10.26.0.5:~/
+
+步骤2：SSH 登录刘秀安装依赖
+  ssh chenhe@10.26.0.5
+  pip install akshare pandas requests pyyaml
+  mkdir -p ~/股票市场扫描规则/logs
+
+步骤3：在刘秀上设置系统 cron（crontab -e）
+
+  # ── 刘秀（SEPA 基本面周筛）──
+  # 每日 08:30 增量检查（新闻/公告/财报）
+  30 08 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu --incremental >> logs/liuxiu_daily.log 2>&1
+
+  # 周日 21:00 全量重筛
+  00 21 * * 0 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu >> logs/liuxiu_weekly.log 2>&1
+
+
+════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────
+  孔明（本机）— 数据聚合 + 对比复盘
+  部署：系统 cron
+────────────────────────────────────────────────────────
+
+先决条件：配置 SSH 免密登录
+  ssh-copy-id chenhe@10.26.0.7
+  ssh-copy-id chenhe@10.26.0.5
+
+设置系统 cron（crontab -e）
+
+  # ── 孔明（数据聚合）──
+  # 15:30 从凤雏拉取今日扫描结果
+  30 15 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && scp chenhe@10.26.0.7:~/股票市场扫描规则/output/fengchu/candidates/*.json output/fengchu/candidates/ >> logs/fetch.log 2>&1
+
+  # 15:35 从凤雏拉取交易记录
+  35 15 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && scp chenhe@10.26.0.7:~/股票市场扫描规则/data/trades/fengchu_*.json data/trades/ >> logs/fetch.log 2>&1
+
+  # 16:00 生成双策略对比报告
+  00 16 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && python3 run_scan.py --compare >> logs/compare.log 2>&1
+
+  # 周日 22:00 合并核心池
+  00 22 * * 0 cd /Users/chenhe/Documents/股票市场扫描规则 && python3 run_scan.py --merge-pools >> logs/merge.log 2>&1
+
+  # 配置 Dify API Key 后自动上传每日报告
+  export DIFY_API_KEY="your-key"
+
+
+════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────
+  OpenClaw — AI 汇报层
+  部署：openclaw cron add
+────────────────────────────────────────────────────────
+
+前提：OpenClaw Gateway 正在运行，已连接飞书频道
+
+凤雏复盘（交易日 10:00 发送结果到飞书）：
+
+openclaw cron add   --name "凤雏早盘复盘"   --cron "0 10 * * 1-5"   --session isolated   --message "读取 ~/股票市场扫描规则/output/fengchu/trades/ 下的最新交易记录，
+             生成今日凤雏早盘卖出复盘报告。
+             报告格式：
+             1. 今日卖出股票列表（盈亏%）
+             2. 累计收益
+             3. 当前持仓（如有）"   --announce --channel feishu --to "user:me"
+
+
+凤雏收盘复盘（交易日 15:30）：
+
+openclaw cron add   --name "凤雏收盘复盘"   --cron "30 15 * * 1-5"   --session isolated   --message "读取 ~/股票市场扫描规则/output/fengchu/candidates/ 和 trades/ 下的最新文件，
+             生成今日凤雏策略收盘复盘报告。
+             包含今日筛选结果、买入记录、累计盈亏"   --announce --channel feishu --to "user:me"
+
+
+周报（周日 22:30）：
+
+openclaw cron add   --name "双策略周报"   --cron "30 22 * * 0"   --session isolated   --message "读取 ~/股票市场扫描规则/reports/comparison/ 下的对比报告，
+             生成本周双策略战绩周报。
+             对比凤雏日筛 vs 刘秀周筛的总收益率、胜率"   --announce --channel feishu --to "user:me"
+
+
+════════════════════════════════════════════════════
+
+部署顺序：
+  第1步：凤雏（10.26.0.7）— 系统 cron
+  第2步：刘秀（10.26.0.5）— 系统 cron
+  第3步：孔明（本机）— 系统 cron（需 ssh-copy-id）
+  第4步：OpenClaw（本机）— openclaw cron add
 
 ### 环境要求
 ```bash
