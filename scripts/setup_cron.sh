@@ -1,54 +1,145 @@
 #!/bin/bash
-# 设置定时任务 — 凤雏在本地，刘秀在远程
-# 用法: bash scripts/setup_cron.sh [local|remote|all]
+# 三设备定时任务部署助手
+# 孔明（本机）| 刘秀（10.26.0.5）| 凤雏（10.26.0.7）
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-install_fengchu_cron() {
-    echo "安装凤雏定时任务 (本地设备)..."
-    echo "# 凤雏策略 — 每日 14:00 技术面扫描 + 14:30 模拟买入"
-    echo "# 每日 15:00 收盘复盘报告"
-    (crontab -l 2>/dev/null; echo "") | sort -u | crontab -
-    echo "凤雏定时任务已安装。"
+show_kongming() {
     echo ""
-    echo "请手动执行以下命令来安装cron（替换实际路径）："
+    echo "╔══════════════════════════════════════════════╗"
+    echo "║  孔明（本机）— 数据聚合 + 对比复盘           ║"
+    echo "║  部署到: $(hostname)                        ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo ""
+    echo "请手动执行以下命令来安装 cron："
+    echo ""
     echo "  crontab -e"
-    echo "添加以下行："
-    echo "  # 凤雏 每日14:00扫描"
-    echo "  00 14 * * 1-5 cd $PROJECT_DIR && python3 run_scan.py --strategy fengchu >> logs/cron_fengchu.log 2>&1"
-    echo "  # 凤雏 15:00复盘"
-    echo "  00 15 * * 1-5 cd $PROJECT_DIR && python3 run_scan.py --strategy fengchu --review >> logs/cron_review.log 2>&1"
+    echo ""
+    echo "添加以下内容："
+    echo ""
+    echo "============================================"
+    cat "$PROJECT_DIR/cron_config/kongming_cron.txt"
+    echo "============================================"
+    echo ""
+    echo "先决条件："
+    echo "1. 配置 SSH 免密登录到刘秀和凤雏:"
+    echo "   ssh-copy-id chenhe@10.26.0.5"
+    echo "   ssh-copy-id chenhe@10.26.0.7"
+    echo "2. 确保本机 output/ 目录已创建"
+    echo ""
 }
 
-install_liuxiu_cron() {
-    echo "安装刘秀定时任务 (远程设备)..."
+show_liuxiu() {
     echo ""
-    echo "请手动执行以下命令来安装cron："
-    echo "  crontab -e"
-    echo "添加以下行："
-    echo "  # 刘秀 周日21:00全量重筛"
-    echo "  00 21 * * 0 cd $PROJECT_DIR && python3 run_scan.py --strategy liuxiu >> logs/cron_liuxiu.log 2>&1"
-    echo "  # 刘秀 每日08:30增量检查"
-    echo "  30 08 * * 1-5 cd $PROJECT_DIR && python3 run_scan.py --strategy liuxiu --incremental >> logs/cron_liuxiu_daily.log 2>&1"
+    echo "╔══════════════════════════════════════════════╗"
+    echo "║  刘秀（10.26.0.5）— SEPA + 基本面周筛       ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo ""
+    echo "部署步骤："
+    echo "1. 将项目复制到刘秀："
+    echo "   scp -r $PROJECT_DIR chenhe@10.26.0.5:~/"
+    echo ""
+    echo "2. SSH 登录刘秀："
+    echo "   ssh chenhe@10.26.0.5"
+    echo ""
+    echo "3. 在刘秀上安装依赖："
+    echo "   pip install akshare pandas pyyaml requests"
+    echo ""
+    echo "4. 在刘秀上设置 cron："
+    echo "   crontab -e"
+    echo ""
+    echo "添加以下内容："
+    echo ""
+    echo "============================================"
+    cat "$PROJECT_DIR/cron_config/liuxiu_cron.txt"
+    echo "============================================"
+    echo ""
 }
 
-case "${1:-local}" in
-    local)
-        install_fengchu_cron
+show_fengchu() {
+    echo ""
+    echo "╔══════════════════════════════════════════════╗"
+    echo "║  凤雏（10.26.0.7）— 杨永兴日筛 + 隔夜套利   ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo ""
+    echo "部署步骤："
+    echo "1. 将项目复制到凤雏："
+    echo "   scp -r $PROJECT_DIR chenhe@10.26.0.7:~/"
+    echo ""
+    echo "2. SSH 登录凤雏："
+    echo "   ssh chenhe@10.26.0.7"
+    echo ""
+    echo "3. 在凤雏上安装依赖："
+    echo "   pip install akshare pandas pyyaml requests"
+    echo ""
+    echo "4. 在凤雏上设置 cron："
+    echo "   crontab -e"
+    echo ""
+    echo "添加以下内容："
+    echo ""
+    echo "============================================"
+    cat "$PROJECT_DIR/cron_config/fengchu_cron.txt"
+    echo "============================================"
+    echo ""
+}
+
+show_deploy_all() {
+    echo "============================================"
+    echo "  全量部署"
+    echo "============================================"
+    echo ""
+    echo "第1步：部署到凤雏（10.26.0.7）"
+    echo "  scp -r $PROJECT_DIR chenhe@10.26.0.7:~/"
+    echo ""
+    echo "第2步：部署到刘秀（10.26.0.5）"
+    echo "  scp -r $PROJECT_DIR chenhe@10.26.0.5:~/"
+    echo ""
+    echo "第3步：登录各设备安装依赖 + 设置 cron"
+    echo "  参考对应设备的配置说明"
+    echo ""
+    echo "第4步：在本机配置 SSH 免密 + 安装孔明 cron"
+    echo "  ssh-copy-id chenhe@10.26.0.7"
+    echo "  ssh-copy-id chenhe@10.26.0.5"
+    echo ""
+}
+
+case "${1:-all}" in
+    kongming|local|本机)
+        show_kongming
         ;;
-    remote)
-        install_liuxiu_cron
+    liuxiu|0.5)
+        show_liuxiu
+        ;;
+    fengchu|0.7)
+        show_fengchu
         ;;
     all)
-        echo "=== 本地设备（凤雏）==="
-        install_fengchu_cron
+        show_kongming
         echo ""
-        echo "=== 远程设备（刘秀）==="
-        install_liuxiu_cron
+        echo "────────────────────────────────────────────"
+        echo ""
+        show_liuxiu
+        echo ""
+        echo "────────────────────────────────────────────"
+        echo ""
+        show_fengchu
+        echo ""
+        echo "────────────────────────────────────────────"
+        echo ""
+        show_deploy_all
+        ;;
+    help|--help|-h)
+        echo "用法: bash $0 [kongming|liuxiu|fengchu|all]"
+        echo ""
+        echo "  kongming  - 本机（孔明）cron 配置说明"
+        echo "  liuxiu    - 10.26.0.5（刘秀）部署说明"
+        echo "  fengchu   - 10.26.0.7（凤雏）部署说明"
+        echo "  all       - 全部（默认）"
         ;;
     *)
-        echo "用法: $0 [local|remote|all]"
+        echo "未知参数: $1"
+        echo "用法: bash $0 [kongming|liuxiu|fengchu|all]"
         exit 1
         ;;
 esac

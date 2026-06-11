@@ -1,0 +1,25 @@
+# ═══════════════════════════════════════════════════════════════
+# 孔明策略 — 数据聚合 + 对比复盘 + 核心池管理
+# 部署到: 本机 （孔明，Mac）
+# ═══════════════════════════════════════════════════════════════
+
+# 每日 15:30 从凤雏拉取今日结果
+30 15 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && \
+  scp chenhe@10.26.0.7:~/股票市场扫描规则/output/fengchu/candidates/*.json output/fengchu/candidates/ && \
+  scp chenhe@10.26.0.7:~/股票市场扫描规则/data/trades/fengchu_*.json data/trades/ && \
+  python3 run_scan.py --strategy fengchu --review >> logs/cron_kongming.log 2>&1
+
+# 每日 15:35 从刘秀拉取今日结果
+35 15 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && \
+  scp chenhe@10.26.0.5:~/股票市场扫描规则/output/liuxiu/reports/*.json output/liuxiu/reports/ && \
+  echo "刘秀数据已同步" >> logs/cron_kongming.log 2>&1
+
+# 每日 16:00 生成双策略对比报告
+00 16 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && \
+  python3 run_scan.py --compare >> logs/cron_compare.log 2>&1
+
+# 周日 22:30 合并两个策略的核心池
+30 22 * * 0 cd /Users/chenhe/Documents/股票市场扫描规则 && \
+  python3 run_scan.py --merge-pools >> logs/cron_merge.log 2>&1
+
+# 两周模拟结束后: python3 run_scan.py --final-report

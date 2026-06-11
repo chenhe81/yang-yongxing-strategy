@@ -1,15 +1,16 @@
-# ═══════════════════════════════════════════════
-# 刘秀策略 — SEPA 趋势模板 + 基本面周筛
-# 部署到 设备B（远程服务器/另一台电脑）
-# ═══════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+# 刘秀策略 — SEPA 趋势模板 + 五因子基本面周筛
+# 部署到: 10.26.0.5 （刘秀）
+# ═══════════════════════════════════════════════════════════════
 
-# 周日 21:00 全量重筛
-00 21 * * 0 cd /Users/chenhe/Documents/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu >> logs/cron_liuxiu.log 2>&1
+# 周日 21:00 全量重筛（全市场 SEPA 趋势模板 + 基本面过滤）
+00 21 * * 0 cd /home/chenhe/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu >> logs/cron_liuxiu.log 2>&1
 
-# 每日 08:30 增量检查（新闻/公告/财报）
-30 08 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu --incremental >> logs/cron_liuxiu_daily.log 2>&1
+# 周日 22:00 输出下周核心池清单
+00 22 * * 0 cd /home/chenhe/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu --output-pool >> logs/cron_pool.log 2>&1
 
-# 说明：
-# - 周日重筛 分析全部候选股，更新核心池
-# - 每日增量 检查持仓股新闻/公告
-# - 调整路径为实际部署路径
+# 每日 08:30 增量检查（新闻/公告/财报触发）
+30 08 * * 1-5 cd /home/chenhe/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu --incremental >> logs/cron_liuxiu_daily.log 2>&1
+
+# 结果等待孔明拉取（scp 方式）
+# 孔明本机执行: scp chenhe@10.26.0.5:~/股票市场扫描规则/output/liuxiu/* ./output/liuxiu/

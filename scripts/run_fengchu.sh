@@ -1,7 +1,7 @@
 #!/bin/bash
-# 凤雏每日扫描 — 14:00 定时执行
-# 部署到 设备A（Mac mini / NAS）
+# 凤雏每日扫描 — 部署到 10.26.0.7
+# 每日 14:00 执行
 cd "$(dirname "$0")/.."
-source venv/bin/activate 2>/dev/null || true
 DATE=$(date "+%Y-%m-%d")
 python3 run_scan.py --strategy fengchu --date "$DATE" >> "logs/fengchu_${DATE}.log" 2>&1
+echo "[$(date)] 凤雏扫描完成" >> "logs/fengchu_${DATE}.log"
