@@ -83,20 +83,40 @@ def process_fengchu_scan(date_str: str):
     # === 模拟交易（先卖后买） ===
     engine = SimulationEngine("fengchu", initial_capital=1_000_000)
 
-    # 步骤1: 卖出昨日持仓（从文件读，engine 会自动加载）
+    # 步骤1: 卖出昨日持仓 — 使用今日开盘价（模拟09:30卖出）
     old_portfolio = load_portfolio("fengchu")
     if old_portfolio.get("positions"):
         for pos in old_portfolio["positions"]:
             code = pos["code"]
-            stock_row = df[df["code"] == code]
-            if not stock_row.empty:
-                sell_price = stock_row.iloc[0].get("price", 0)
-                if sell_price > 0:
-                    buy_price = pos["buy_price"]
-                    pnl_pct = (sell_price - buy_price) / buy_price * 100
-                    # 使用 engine.sell 来操作（它从文件再次加载，会看到同样的持仓）
-                    engine.sell(code, sell_price, date_str,
-                                reason=f"隔夜卖出(盈亏{pnl_pct:+.1f}%)")
+            name = pos["name"]
+            buy_price = pos["buy_price"]
+
+            # 优先读取今日开盘价（更接近真实09:30卖出场景）
+            hist = fetch_stock_history(code, days=5)
+            sell_price = 0
+            if not hist.empty:
+                today_row = hist[hist["date"] == pd.Timestamp(date_str)]
+                if not today_row.empty:
+                    sell_price = today_row.iloc[0]["open"]
+
+            # 备用：用当前实时行情价格
+            if sell_price <= 0:
+                stock_row = df[df["code"] == code]
+                if not stock_row.empty:
+                    sell_price = stock_row.iloc[0].get("price", 0)
+
+            if sell_price > 0:
+                pnl_pct = (sell_price - buy_price) / buy_price * 100
+
+                # 10:00 止盈/止损/时间止损规则
+                if pnl_pct >= 3:
+                    reason = f"止盈 +{pnl_pct:.1f}% ✅"
+                elif pnl_pct <= -2:
+                    reason = f"止损 {pnl_pct:.1f}% ❌"
+                else:
+                    reason = f"10:00时间止损 {pnl_pct:+.1f}% ⏰"
+
+                engine.sell(code, sell_price, date_str, reason)
 
     # 步骤2: 买入今日新候选
     buy_targets = [r for r in results if r["decision"] in ("buy", "strong_buy")][:2]

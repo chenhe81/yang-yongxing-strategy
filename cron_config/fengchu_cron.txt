@@ -1,15 +1,17 @@
 # ═══════════════════════════════════════════════════════════════
-# 凤雏策略 — 杨永兴战法（技术面日筛 + 隔夜套利）
+# 凤雏策略 — 杨永兴隔夜套利法
 # 部署到: 10.26.0.7 （凤雏）
+#
+# 铁律：次日 10:00 前必须清仓！
 # ═══════════════════════════════════════════════════════════════
 
-# 每日 14:00 运行全市场技术面扫描 + 模拟买入
+# 【铁律】09:35 早盘卖出昨日持仓（开盘价 +3%止盈 / -2%止损 / 10:00时间止损）
+35 09 * * 1-5 cd /home/chenhe/股票市场扫描规则 && python3 run_morning_sell.py >> logs/morning_sell.log 2>&1
+
+# 14:00 运行全市场技术面扫描
 00 14 * * 1-5 cd /home/chenhe/股票市场扫描规则 && python3 run_scan.py --strategy fengchu >> logs/cron_fengchu.log 2>&1
 
-# 每日 14:55 买入确认
+# 14:55 买入确认
 55 14 * * 1-5 cd /home/chenhe/股票市场扫描规则 && python3 run_scan.py --strategy fengchu --confirm >> logs/cron_confirm.log 2>&1
 
-# 每日 15:00 收盘复盘，结果等待孔明拉取
-00 15 * * 1-5 cd /home/chenhe/股票市场扫描规则 && python3 run_scan.py --strategy fengchu --review >> logs/cron_review.log 2>&1
-
-# 手动执行: python3 run_scan.py --strategy fengchu --date YYYY-MM-DD
+# 手动执行: python3 run_morning_sell.py --date YYYY-MM-DD
