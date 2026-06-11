@@ -28,7 +28,8 @@ _session.headers.update({"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 1
 PERMANENT_EXCLUDE_CODES = {"688039"}
 
 
-def is_permanently_excluded(code: str) -> bool:
+def is_permanently_excluded(code) -> bool:
+    code = str(code).zfill(6)
     if code in PERMANENT_EXCLUDE_CODES:
         return True
     if code.startswith(("8", "4")) and len(code) == 6:
