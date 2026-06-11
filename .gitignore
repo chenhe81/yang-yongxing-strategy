@@ -1,0 +1,16 @@
+# 数据文件
+data/market_data/*
+data/trades/*
+output/*
+logs/*
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

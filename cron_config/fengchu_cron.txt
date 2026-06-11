@@ -1,0 +1,15 @@
+# ═══════════════════════════════════════════════
+# 凤雏策略 — 杨永兴战法（技术面日筛+隔夜套利）
+# 部署到 设备A（本机 Mac mini）
+# ═══════════════════════════════════════════════
+
+# 每日 14:00 运行全市场扫描 + 模拟买入（仅限交易日）
+00 14 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && python3 run_scan.py --strategy fengchu >> logs/cron_fengchu.log 2>&1
+
+# 每日 15:00 收盘复盘
+# 00 15 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && python3 run_scan.py --strategy fengchu --review >> logs/cron_review.log 2>&1
+
+# 说明：
+# - 如果使用 venv，将 python3 替换为 /path/to/venv/bin/python3
+# - 日志文件自动追加到 logs/ 目录
+# - 手动执行: crontab -e 粘贴以上内容

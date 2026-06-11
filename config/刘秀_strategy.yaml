@@ -1,0 +1,53 @@
+# 刘秀策略配置 — Serenity紫苏叶理论 + SEPA（基本面周筛+趋势模板）
+# 来源：股票池分层管理规则 v1.0 算法B / SEPA过滤法完整规则手册.md
+
+strategy:
+  name: "刘秀"
+  type: "fundamental_weekly"
+  description: "五因子评分模型 + SEPA 趋势模板 — 基本面筛选中线持仓"
+
+time:
+  full_scan: "周日 21:00"
+  incremental_check: "08:30"
+  buy_time: "09:30"
+  review_time: "15:00"
+  weekly_output: "周日 22:00"
+
+screening:
+  # 五因子评分（股票池分层管理规则）
+  factors:
+    确定需求:
+      weight: 25
+      description: "AI/新能源/国产替代确定性链条？下游CapEx增长？"
+    受限供给:
+      weight: 25
+      description: "全球供给瓶颈？产业链壁垒？"
+    低关注度:
+      weight: 15
+      description: "券商覆盖数、研报数量"
+    价值捕获:
+      weight: 20
+      description: "毛利率、客户锁定性、定价权"
+    催化剂:
+      weight: 15
+      description: "未来1-3个月关键事件"
+
+  入池门槛: 70
+
+  # SEPA 趋势模板参数
+  sepa:
+    enabled: true
+    均线周期_短期: 50
+    均线周期_中期: 150
+    均线周期_长期: 200
+    RS评级门槛: 80
+    52周高点门槛_pct: 75
+
+risk:
+  止损_pct: -5.0
+  止盈_pct: 15.0
+  持仓上限: 3
+  单只仓位上限_pct: 20
+
+capital:
+  initial: 1000000
