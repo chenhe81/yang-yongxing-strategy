@@ -1,0 +1,15 @@
+# Dify 知识库配置
+# 
+# 使用前请在下方填写 API Key：
+# 1. 登录 https://dify.ai 或自建实例
+# 2. 进入 设置 → API密钥 → 创建密钥
+# 3. 将密钥填入下方 api_key 字段
+
+api_key: ""         # 在此处填写你的 Dify API Key
+base_url: "https://api.dify.ai/v1"  # Dify API 地址（自建实例请修改）
+
+# 知识库名称映射（如需自定义请修改）
+knowledge_bases:
+  fengchu: "凤雏每日扫描记录"
+  liuxiu: "刘秀每周扫描记录"
+  kongming: "孔明复盘报告"
