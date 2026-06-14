@@ -30,13 +30,9 @@ _session.headers.update({"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 1
 # 是否使用 curl 降级（Python 3.14 urllib3 兼容问题）
 _use_curl_fallback = False
 
-PERMANENT_EXCLUDE_CODES = {"688039"}
-
 
 def is_permanently_excluded(code) -> bool:
     code = str(code).zfill(6)
-    if code in PERMANENT_EXCLUDE_CODES:
-        return True
     if code.startswith(("8", "4")) and len(code) == 6:
         return True
     if code.startswith(("688", "689")):
