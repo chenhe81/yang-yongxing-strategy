@@ -106,14 +106,14 @@ def generate_daily_report(strategy: str, date: str, scan_results: list) -> str:
 def generate_comparison_report() -> str:
     """生成双策略对比报告"""
     lines = []
-    lines.append("# 刘秀 vs 凤雏 — 双策略对比报告")
+    lines.append("# 仲达 vs 凤雏 — 双策略对比报告")
     lines.append(f"> 生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     lines.append("")
 
-    for strategy in ["fengchu", "liuxiu"]:
+    for strategy in ["fengchu", "zhongda"]:
         p = load_portfolio(strategy)
         trades = load_trades(strategy)
-        label = "凤雏" if strategy == "fengchu" else "刘秀"
+        label = "凤雏" if strategy == "fengchu" else "仲达"
 
         lines.append(f"## {label} ({strategy})")
         lines.append("")
@@ -137,7 +137,7 @@ def generate_comparison_report() -> str:
     lines.append("")
     # Determine winner
     f_p = load_portfolio("fengchu")
-    l_p = load_portfolio("liuxiu")
+    l_p = load_portfolio("zhongda")
     f_total = f_p.get("cash", 0) + sum(p["cost"] for p in f_p.get("positions", []))
     l_total = l_p.get("cash", 0) + sum(p["cost"] for p in l_p.get("positions", []))
     f_pnl = f_total - f_p.get("initial_capital", 0)
@@ -148,7 +148,7 @@ def generate_comparison_report() -> str:
     if f_pnl_pct > l_pnl_pct:
         lines.append(f"**🏆 当前领先: 凤雏**  ({f_pnl_pct:+.2f}% vs {l_pnl_pct:+.2f}%)")
     elif l_pnl_pct > f_pnl_pct:
-        lines.append(f"**🏆 当前领先: 刘秀**  ({l_pnl_pct:+.2f}% vs {f_pnl_pct:+.2f}%)")
+        lines.append(f"**🏆 当前领先: 仲达**  ({l_pnl_pct:+.2f}% vs {f_pnl_pct:+.2f}%)")
     else:
         lines.append("**🤝 双方持平**")
 

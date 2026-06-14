@@ -9,10 +9,10 @@
   scp chenhe@10.26.0.7:~/股票市场扫描规则/data/trades/fengchu_*.json data/trades/ && \
   python3 run_scan.py --strategy fengchu --review >> logs/cron_kongming.log 2>&1
 
-# 每日 15:35 从刘秀拉取今日结果
+# 每日 15:35 从仲达拉取今日结果
 35 15 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && \
-  scp chenhe@10.26.0.5:~/股票市场扫描规则/output/liuxiu/reports/*.json output/liuxiu/reports/ && \
-  echo "刘秀数据已同步" >> logs/cron_kongming.log 2>&1
+  scp chenhe@10.26.0.5:~/股票市场扫描规则/output/zhongda/reports/*.json output/zhongda/reports/ && \
+  echo "仲达数据已同步" >> logs/cron_kongming.log 2>&1
 
 # 每日 16:00 生成双策略对比报告
 00 16 * * 1-5 cd /Users/chenhe/Documents/股票市场扫描规则 && \

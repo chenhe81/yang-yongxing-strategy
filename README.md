@@ -17,7 +17,7 @@
 - **硬性条件**：涨幅 3%-5%、量比 > 1.0、换手率 5%-10%、流通市值 50-200亿、板块排名前3、20天内有涨停记录
 - **评分体系**：满分 100 + 板块加分，≥ 70 分买入，全仓单只
 
-### 🔵 SEPA 趋势模板 + 五因子评分（刘秀）
+### 🔵 SEPA 趋势模板 + 五因子评分（仲达）
 
 中线持有（约1周），基本面+趋势双重筛选。
 评分满分100分，四部分评分结构：
@@ -41,7 +41,7 @@
 ### 🟣 孔明 — 数据聚合与对比复盘
 
 聚合双策略结果，生成对比日报，维护核心池，支持两周模拟期后的最终评估。
-数据来自凤雏（远程）和刘秀（远程）的输出目录，通过 SSH 拉取到本地聚合。
+数据来自凤雏（远程）和仲达（远程）的输出目录，通过 SSH 拉取到本地聚合。
 
 ## 快速开始
 
@@ -55,7 +55,7 @@ pip install akshare pandas pyyaml requests
 
 # 3. 运行扫描
 python run_scan.py --strategy fengchu  # 杨永兴日筛
-python run_scan.py --strategy liuxiu   # SEPA周筛
+python run_scan.py --strategy zhongda   # SEPA周筛
 python run_scan.py --compare           # 对比复盘
 python run_backtest.py --days 10       # 回测最近10天
 ```
@@ -65,14 +65,14 @@ python run_backtest.py --days 10       # 回测最近10天
 ```
 ├── config/                      # 策略参数配置
 │   ├── 凤雏_strategy.yaml        # 杨永兴隔夜套利法配置
-│   └── 刘秀_strategy.yaml        # Serenity紫苏叶五因子 + SEPA 配置
+│   └── 仲达_strategy.yaml        # Serenity紫苏叶五因子 + SEPA 配置
 ├── src/
 │   ├── data_fetcher.py          # 多源数据获取（requests/curl 双通道）
 │   ├── simulation.py            # 模拟交易引擎
 │   ├── reporting.py             # 报告生成
 │   └── strategies/
 │       ├── fengchu.py           # 杨永兴九步过滤评分
-│       └── liuxiu.py            # Serenity紫苏叶五因子 + SEPA + VCP
+│       └── zhongda.py            # Serenity紫苏叶五因子 + SEPA + VCP
 ├── run_scan.py                  # 主入口
 ├── run_backtest.py              # 回测入口
 ├── scripts/                     # 部署脚本
@@ -116,7 +116,7 @@ python run_backtest.py --days 10       # 回测最近10天
 | 10:00 未达止盈止损 | 时间止损，强制清仓 |
 | 不加仓、不扛单、不做T | 铁律 |
 
-### 刘秀（SEPA策略）
+### 仲达（SEPA策略）
 | 条件 | 操作 |
 |------|------|
 | 持仓达 +15% | 止盈卖出 |

@@ -1,5 +1,5 @@
 """
-刘秀策略 — Serenity 紫苏叶五因子模型 + SEPA 趋势模板 + VCP 形态
+仲达策略 — Serenity 紫苏叶五因子模型 + SEPA 趋势模板 + VCP 形态
 
 评分体系（满分100分，与凤雏评分可比）：
   1. SEPA 8条件趋势模板（40分）— 均线排列、RS评级、52周高点
@@ -238,7 +238,7 @@ def estimate_fundamental_score(code: str, name: str = "") -> dict:
     Serenity 紫苏叶五因子模型 — 简化评分（基于可获取的公开数据）
     
     来源：Serenity 紫苏叶五因子模型（原创方法论）
-    描述见 config/刘秀_strategy.yaml
+    描述见 config/仲达_strategy.yaml
 
     因子① 确定需求（5分）
     因子② 受限供给（5分）
@@ -261,7 +261,7 @@ def estimate_fundamental_score(code: str, name: str = "") -> dict:
 # 主评分函数
 # ═══════════════════════════════════════════════
 
-def calculate_liuxiu_score(
+def calculate_zhongda_score(
     code: str,
     name: str,
     df_hist: pd.DataFrame,
@@ -345,7 +345,7 @@ def run_screening(
     sector_map: Dict[str, str] = None,
 ) -> List[dict]:
     """
-    全市场刘秀策略筛选
+    全市场仲达策略筛选
 
     参数:
       df_market: 全市场实时行情
@@ -355,7 +355,7 @@ def run_screening(
     """
     results = []
     total = len(df_market)
-    logger.info(f"刘秀全市场筛选: {total} 只")
+    logger.info(f"仲达全市场筛选: {total} 只")
 
     for i, (_, row) in enumerate(df_market.iterrows()):
         code = row["code"]
@@ -370,7 +370,7 @@ def run_screening(
         srank = sector_ranks.get(sector_name)
 
         # 计算评分
-        score_info = calculate_liuxiu_score(
+        score_info = calculate_zhongda_score(
             code=code, name=name, df_hist=hist,
             pct_5d=row.get("pct_5d", 0) or 0,
             pct_60d=row.get("pct_60d", 0) or 0,
@@ -385,5 +385,5 @@ def run_screening(
             logger.info(f"  进度: {i+1}/{total} | 已筛选 {len(results)} 只")
 
     results.sort(key=lambda x: x["score"], reverse=True)
-    logger.info(f"刘秀筛选完成: 共 {len(results)} 只候选")
+    logger.info(f"仲达筛选完成: 共 {len(results)} 只候选")
     return results

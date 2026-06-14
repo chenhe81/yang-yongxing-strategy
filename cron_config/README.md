@@ -6,7 +6,7 @@
 
 ```
 第1步：凤雏（10.26.0.7）→ 系统 cron
-第2步：刘秀（10.26.0.5）→ 系统 cron
+第2步：仲达（10.26.0.5）→ 系统 cron
 第3步：孔明（本机）      → 系统 cron（需 ssh-copy-id）
 第4步：OpenClaw（本机）  → openclaw cron add
 ```
@@ -19,7 +19,7 @@ bash scripts/setup_cron.sh
 
 # 查看单个设备
 bash scripts/setup_cron.sh fengchu
-bash scripts/setup_cron.sh liuxiu
+bash scripts/setup_cron.sh zhongda
 bash scripts/setup_cron.sh kongming
 bash scripts/setup_cron.sh openclaw
 ```
@@ -32,10 +32,10 @@ bash scripts/setup_cron.sh openclaw
 00 14 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy fengchu >> logs/fengchu.log
 ```
 
-### 刘秀（10.26.0.5）— SEPA 基本面周筛
+### 仲达（10.26.0.5）— SEPA 基本面周筛
 ```cron
-30 08 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu --incremental >> logs/liuxiu_daily.log
-00 21 * * 0 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu >> logs/liuxiu_weekly.log
+30 08 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy zhongda --incremental >> logs/zhongda_daily.log
+00 21 * * 0 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy zhongda >> logs/zhongda_weekly.log
 ```
 
 ### 孔明（本机）— 数据聚合

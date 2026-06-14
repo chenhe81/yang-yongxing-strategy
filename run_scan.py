@@ -3,7 +3,7 @@
 
 用法:
   python run_scan.py --strategy fengchu          # 凤雏日筛
-  python run_scan.py --strategy liuxiu           # 刘秀周筛
+  python run_scan.py --strategy zhongda           # 仲达周筛
   python run_scan.py --both                       # 双策略
 """
 import argparse
@@ -23,7 +23,7 @@ from src.data_fetcher import (
     has_20d_limit_up, is_trading_day, get_next_trading_day,
 )
 from src.strategies.fengchu import run_screening as fengchu_screen
-from src.strategies.liuxiu import calculate_liuxiu_score, score_sepa_template
+from src.strategies.zhongda import calculate_zhongda_score, score_sepa_template
 from src.simulation import SimulationEngine
 from src.reporting import (
     generate_daily_report, generate_comparison_report, save_report,
@@ -121,9 +121,9 @@ def process_fengchu_scan(date_str: str):
     return results
 
 
-def process_liuxiu_scan(date_str: str):
-    """刘秀：SEPA周筛 + 全仓模拟交易"""
-    logger.info(f"═══ 刘秀策略周筛 [{date_str}] ═══")
+def process_zhongda_scan(date_str: str):
+    """仲达：SEPA周筛 + 全仓模拟交易"""
+    logger.info(f"═══ 仲达策略周筛 [{date_str}] ═══")
 
     df = fetch_all_stocks_spot()
     if df.empty:
@@ -139,7 +139,7 @@ def process_liuxiu_scan(date_str: str):
         df_cand = df[df["amount"] > 3000_0000].head(200).copy()
 
     df_cand = df_cand.head(100)  # 取前100只评分
-    logger.info(f"刘秀候选: {len(df_cand)} 只（将获取历史数据评分）")
+    logger.info(f"仲达候选: {len(df_cand)} 只（将获取历史数据评分）")
 
     results = []
     stocks = df_cand.to_dict("records")
@@ -154,7 +154,7 @@ def process_liuxiu_scan(date_str: str):
         pct_5d = s.get("pct_5d", 0) or 0
         pct_60d = s.get("pct_60d", 0) or 0
 
-        score_info = calculate_liuxiu_score(
+        score_info = calculate_zhongda_score(
             code=code, name=s.get("name", ""),
             df_hist=hist, pct_5d=float(pct_5d),
             pct_60d=float(pct_60d),
@@ -167,22 +167,22 @@ def process_liuxiu_scan(date_str: str):
 
     results.sort(key=lambda x: x["score"], reverse=True)
 
-    out_path = os.path.join(BASE_DIR, "output", "liuxiu", "candidates",
+    out_path = os.path.join(BASE_DIR, "output", "zhongda", "candidates",
                             f"screening_{date_str}.json")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2, default=str)
 
     # 模拟交易（全仓买入#1）
-    engine = SimulationEngine("liuxiu", initial_capital=2000)
+    engine = SimulationEngine("zhongda", initial_capital=2000)
     buy_targets = [r for r in results if r["decision"] in ("buy", "strong_buy")][:1]
     for t in buy_targets:
         engine.buy(code=t["code"], name=t["name"],
                    price=t.get("price", 0), score=t["score"],
-                   date=date_str, reason=f"刘秀周筛 评分{t['score']} 全仓")
+                   date=date_str, reason=f"仲达周筛 评分{t['score']} 全仓")
 
     # 打印结果
-    print(f"\n【刘秀 {date_str}】SEPA周筛")
+    print(f"\n【仲达 {date_str}】SEPA周筛")
     print(f"  筛选: {len(results)} 只通过")
     for r in results[:5]:
         dec = {"strong_buy":"🟢","buy":"🟡","watch":"⚪","ignore":"⚫"}.get(r["decision"],"⚫")
@@ -197,11 +197,11 @@ def process_liuxiu_scan(date_str: str):
         print(f"  本次无符合条件的买入")
 
     # 保存快照
-    report_path = os.path.join(BASE_DIR, "output", "liuxiu", "reports",
+    report_path = os.path.join(BASE_DIR, "output", "zhongda", "reports",
                                 f"market_snapshot_{date_str}.md")
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
     sectors_info = dict(list(sector_ranks.items())[:5])
-    lines = [f"# 刘秀周筛 {date_str}", "",
+    lines = [f"# 仲达周筛 {date_str}", "",
              f"候选: {len(results)} 只 | 买入: {len(buy_targets)} 只",
              f"板块: {sectors_info}", ""]
     if buy_targets:
@@ -213,7 +213,7 @@ def process_liuxiu_scan(date_str: str):
 
 def main():
     parser = argparse.ArgumentParser(description="每日市场扫描")
-    parser.add_argument("--strategy", choices=["fengchu", "liuxiu", "both"], default="fengchu")
+    parser.add_argument("--strategy", choices=["fengchu", "zhongda", "both"], default="fengchu")
     parser.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"))
     args = parser.parse_args()
     date_str = args.date
@@ -225,8 +225,8 @@ def main():
     f_results = l_results = []
     if args.strategy in ("fengchu", "both"):
         f_results = process_fengchu_scan(date_str)
-    if args.strategy in ("liuxiu", "both"):
-        l_results = process_liuxiu_scan(date_str)
+    if args.strategy in ("zhongda", "both"):
+        l_results = process_zhongda_scan(date_str)
 
     if args.strategy == "both":
         report = generate_comparison_report()

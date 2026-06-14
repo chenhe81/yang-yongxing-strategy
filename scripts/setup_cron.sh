@@ -8,7 +8,7 @@
 # 用法:
 #   bash setup_cron.sh                 → 显示全部
 #   bash setup_cron.sh fengchu         → 凤雏(10.26.0.7)
-#   bash setup_cron.sh liuxiu          → 刘秀(10.26.0.5)
+#   bash setup_cron.sh zhongda          → 仲达(10.26.0.5)
 #   bash setup_cron.sh kongming        → 孔明(本机)
 #   bash setup_cron.sh openclaw        → OpenClaw 汇报层
 # ═══════════════════════════════════════════════════════════════
@@ -44,29 +44,29 @@ show_fengchu() {
     echo ""
 }
 
-show_liuxiu() {
+show_zhongda() {
     echo ""
     echo "$SEP"
-    echo "  刘秀（10.26.0.5）— SEPA 基本面周筛"
+    echo "  仲达（10.26.0.5）— SEPA 基本面周筛"
     echo "  部署：系统 cron"
     echo "$SEP"
     echo ""
-    echo "步骤1：将项目复制到刘秀"
+    echo "步骤1：将项目复制到仲达"
     echo "  scp -r $PROJECT_DIR chenhe@10.26.0.5:~/"
     echo ""
-    echo "步骤2：SSH 登录刘秀安装依赖"
+    echo "步骤2：SSH 登录仲达安装依赖"
     echo "  ssh chenhe@10.26.0.5"
     echo "  pip install akshare pandas requests pyyaml"
     echo "  mkdir -p ~/股票市场扫描规则/logs"
     echo ""
-    echo "步骤3：在刘秀上设置系统 cron（crontab -e）"
+    echo "步骤3：在仲达上设置系统 cron（crontab -e）"
     echo ""
-    echo "  # ── 刘秀（SEPA 基本面周筛）──"
+    echo "  # ── 仲达（SEPA 基本面周筛）──"
     echo "  # 每日 08:30 增量检查（新闻/公告/财报）"
-    echo "  30 08 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu --incremental >> logs/liuxiu_daily.log 2>&1"
+    echo "  30 08 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy zhongda --incremental >> logs/zhongda_daily.log 2>&1"
     echo ""
     echo "  # 周日 21:00 全量重筛"
-    echo "  00 21 * * 0 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy liuxiu >> logs/liuxiu_weekly.log 2>&1"
+    echo "  00 21 * * 0 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy zhongda >> logs/zhongda_weekly.log 2>&1"
     echo ""
 }
 
@@ -145,7 +145,7 @@ show_openclaw() {
     echo "  --session isolated \\"
     echo "  --message \"读取 ~/股票市场扫描规则/reports/comparison/ 下的对比报告，"
     echo "             生成本周双策略战绩周报。"
-    echo "             对比凤雏日筛 vs 刘秀周筛的总收益率、胜率\" \\"
+    echo "             对比凤雏日筛 vs 仲达周筛的总收益率、胜率\" \\"
     echo "  --announce --channel feishu --to \"user:me\""
     echo ""
 }
@@ -161,7 +161,7 @@ show_all() {
     echo ""
     echo "════════════════════════════════════════════════════"
     echo ""
-    show_liuxiu
+    show_zhongda
     echo ""
     echo "════════════════════════════════════════════════════"
     echo ""
@@ -175,7 +175,7 @@ show_all() {
     echo ""
     echo "部署顺序："
     echo "  第1步：凤雏（10.26.0.7）— 系统 cron"
-    echo "  第2步：刘秀（10.26.0.5）— 系统 cron"
+    echo "  第2步：仲达（10.26.0.5）— 系统 cron"
     echo "  第3步：孔明（本机）— 系统 cron（需 ssh-copy-id）"
     echo "  第4步：OpenClaw（本机）— openclaw cron add"
     echo ""
@@ -183,12 +183,12 @@ show_all() {
 
 case "${1:-all}" in
     fengchu|0.7) show_fengchu ;;
-    liuxiu|0.5)  show_liuxiu ;;
+    zhongda|0.5)  show_zhongda ;;
     kongming|local|本机) show_kongming ;;
     openclaw|ai) show_openclaw ;;
     all) show_all ;;
     help|--help|-h)
-        echo "用法: bash $0 [fengchu|liuxiu|kongming|openclaw|all]"
+        echo "用法: bash $0 [fengchu|zhongda|kongming|openclaw|all]"
         exit 0
         ;;
     *) echo "未知参数: $1（使用 bash $0 help 查看帮助）"; exit 1 ;;
