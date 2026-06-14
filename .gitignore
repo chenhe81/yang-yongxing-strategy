@@ -1,16 +1,25 @@
-# 数据文件
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Runtime data (local simulation)
 data/market_data/*
 data/trades/*
 output/*
 logs/*
+!output/.gitkeep
+!data/.gitkeep
 
-# Python
-__pycache__/
-*.pyc
-venv/
-.venv/
+# OS
+.DS_Store
+Thumbs.db
+*.swp
 
 # IDE
 .vscode/
 .idea/
-.DS_Store

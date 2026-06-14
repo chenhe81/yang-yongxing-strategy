@@ -1,0 +1,7 @@
+akshare>=1.14.0
+pandas>=2.0.0
+numpy>=1.24.0
+# OpenViking 上下文管理（可选，启用记忆和经验积累功能）
+# 安装: pip install openviking
+# 使用: python run.py combined-scan --openviking
+openviking>=0.3.0
