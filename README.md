@@ -7,7 +7,16 @@
 
 ## 核心策略
 
-### 🟢 杨永兴隔夜套利法（凤雏）
+本系统同时运行两条独立策略，覆盖不同的时间尺度和风险收益特征：
+
+- **青鸾（短线）** 基于杨永兴隔夜套利法，技术面驱动，日频交易。尾盘买入、次日早盘卖出，持股不超过当日至次日上午。目标是从短期市场情绪和资金流向的波动中快速获利。胜率高但单笔收益小，资金周转快。
+- **仲达（中线）** 基于 Serenity 紫苏叶五因子模型 + SEPA 趋势模板，基本面与趋势面双重筛选，周频交易。中线持有约一周，捕捉优质标的的趋势性行情。胜率相对低但单笔收益空间大。
+
+两条策略的设计意图是互补而非替代：青鸾在震荡市中依靠高胜率积累收益，仲达在趋势市中抓住大波段。北辰负责将两条策略的结果聚合起来进行对比复盘——跟踪各自的收益率、胜率和最大回撤，评估哪种风格在当下的市场环境中表现更好。
+
+双策略架构的核心价值在于不押注单一策略。不同市场环境（震荡/趋势/单边）对短线技术派和基本面趋势派的影响是不同的，同时运行两套逻辑相互独立的策略，可以在整体层面降低回撤，获得更平滑的净值曲线。
+
+### 🟢 杨永兴隔夜套利法（青鸾）
 
 尾盘买入、次日早盘卖出，隔夜套利。
 
@@ -38,10 +47,10 @@
 **买入门槛**：≥ 70 分，全仓单只
 **止盈**：+15% / **止损**：-5%
 
-### 🟣 孔明 — 数据聚合与对比复盘
+### 🟣 北辰 — 数据聚合与对比复盘
 
 聚合双策略结果，生成对比日报，维护核心池，支持两周模拟期后的最终评估。
-数据来自凤雏（远程）和仲达（远程）的输出目录，通过 SSH 拉取到本地聚合。
+数据来自青鸾（远程）和仲达（远程）的输出目录，通过 SSH 拉取到本地聚合。
 
 ## 快速开始
 
@@ -54,7 +63,7 @@ cd yang-yongxing-strategy
 pip install akshare pandas pyyaml requests
 
 # 3. 运行扫描
-python run_scan.py --strategy fengchu  # 杨永兴日筛
+python run_scan.py --strategy qingluan  # 杨永兴日筛
 python run_scan.py --strategy zhongda   # SEPA周筛
 python run_scan.py --compare           # 对比复盘
 python run_backtest.py --days 10       # 回测最近10天
@@ -64,14 +73,14 @@ python run_backtest.py --days 10       # 回测最近10天
 
 ```
 ├── config/                      # 策略参数配置
-│   ├── 凤雏_strategy.yaml        # 杨永兴隔夜套利法配置
+│   ├── 青鸾_strategy.yaml        # 杨永兴隔夜套利法配置
 │   └── 仲达_strategy.yaml        # Serenity紫苏叶五因子 + SEPA 配置
 ├── src/
 │   ├── data_fetcher.py          # 多源数据获取（requests/curl 双通道）
 │   ├── simulation.py            # 模拟交易引擎
 │   ├── reporting.py             # 报告生成
 │   └── strategies/
-│       ├── fengchu.py           # 杨永兴九步过滤评分
+│       ├── qingluan.py           # 杨永兴九步过滤评分
 │       └── zhongda.py            # Serenity紫苏叶五因子 + SEPA + VCP
 ├── run_scan.py                  # 主入口
 ├── run_backtest.py              # 回测入口
@@ -107,7 +116,7 @@ python run_backtest.py --days 10       # 回测最近10天
 
 ## 买卖规则
 
-### 凤雏（杨永兴战法）
+### 青鸾（杨永兴战法）
 | 条件 | 操作 |
 |------|------|
 | 次日开盘 +3% 以上 | 市价止盈 |
@@ -130,7 +139,7 @@ python run_backtest.py --days 10       # 回测最近10天
 python run_backtest.py --days 20
 
 # 指定策略回测
-python run_backtest.py --strategy fengchu --days 10
+python run_backtest.py --strategy qingluan --days 10
 ```
 
 ## 开源协议

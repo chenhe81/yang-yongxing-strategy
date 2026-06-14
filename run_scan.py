@@ -2,7 +2,7 @@
 每日市场扫描主入口
 
 用法:
-  python run_scan.py --strategy fengchu          # 凤雏日筛
+  python run_scan.py --strategy qingluan          # 青鸾日筛
   python run_scan.py --strategy zhongda           # 仲达周筛
   python run_scan.py --both                       # 双策略
 """
@@ -22,7 +22,7 @@ from src.data_fetcher import (
     fetch_sector_top_gainers, fetch_stock_sector_map,
     has_20d_limit_up, is_trading_day, get_next_trading_day,
 )
-from src.strategies.fengchu import run_screening as fengchu_screen
+from src.strategies.qingluan import run_screening as qingluan_screen
 from src.strategies.zhongda import calculate_zhongda_score, score_sepa_template
 from src.simulation import SimulationEngine
 from src.reporting import (
@@ -45,9 +45,9 @@ def build_sector_ranks() -> dict:
         return {}
 
 
-def process_fengchu_scan(date_str: str):
-    """凤雏：日筛 + 全仓模拟交易"""
-    logger.info(f"═══ 凤雏策略日筛 [{date_str}] ═══")
+def process_qingluan_scan(date_str: str):
+    """青鸾：日筛 + 全仓模拟交易"""
+    logger.info(f"═══ 青鸾策略日筛 [{date_str}] ═══")
 
     df = fetch_all_stocks_spot()
     if df.empty:
@@ -67,18 +67,18 @@ def process_fengchu_scan(date_str: str):
         s["volume_stable"] = True
         s["no_resistance"] = True
 
-    results = fengchu_screen(stocks, sector_ranks)
+    results = qingluan_screen(stocks, sector_ranks)
 
-    out_path = os.path.join(BASE_DIR, "output", "fengchu", "candidates",
+    out_path = os.path.join(BASE_DIR, "output", "qingluan", "candidates",
                             f"screening_{date_str}.json")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2, default=str)
 
-    engine = SimulationEngine("fengchu", initial_capital=2000)
+    engine = SimulationEngine("qingluan", initial_capital=2000)
 
     # 先卖出昨日持仓
-    old_portfolio = load_portfolio("fengchu")
+    old_portfolio = load_portfolio("qingluan")
     if old_portfolio.get("positions"):
         for pos in old_portfolio["positions"]:
             code = pos["code"]
@@ -109,12 +109,12 @@ def process_fengchu_scan(date_str: str):
                    price=t.get("price", 0), score=t["score"],
                    date=date_str, reason=f"评分{t['score']} 全仓")
 
-    report = generate_daily_report("fengchu", date_str, results)
-    path = save_report(report, "fengchu", date_str, "daily")
-    logger.info(f"凤雏日报 → {path}")
+    report = generate_daily_report("qingluan", date_str, results)
+    path = save_report(report, "qingluan", date_str, "daily")
+    logger.info(f"青鸾日报 → {path}")
 
     summary = engine.get_summary()
-    print(f"\n【凤雏 {date_str}】全仓第{1 if buy_targets else 0}笔")
+    print(f"\n【青鸾 {date_str}】全仓第{1 if buy_targets else 0}笔")
     for t in buy_targets:
         print(f"  🟢 {t['name']}({t['code']}) 评分:{t['score']} 价格:{t.get('price',0):.2f}")
     print(f"  现金:{summary['cash']:.0f} 总资产:{summary['total_assets']:.0f}")
@@ -213,7 +213,7 @@ def process_zhongda_scan(date_str: str):
 
 def main():
     parser = argparse.ArgumentParser(description="每日市场扫描")
-    parser.add_argument("--strategy", choices=["fengchu", "zhongda", "both"], default="fengchu")
+    parser.add_argument("--strategy", choices=["qingluan", "zhongda", "both"], default="qingluan")
     parser.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"))
     args = parser.parse_args()
     date_str = args.date
@@ -223,8 +223,8 @@ def main():
         return
 
     f_results = l_results = []
-    if args.strategy in ("fengchu", "both"):
-        f_results = process_fengchu_scan(date_str)
+    if args.strategy in ("qingluan", "both"):
+        f_results = process_qingluan_scan(date_str)
     if args.strategy in ("zhongda", "both"):
         l_results = process_zhongda_scan(date_str)
 

@@ -5,9 +5,9 @@
 ## 部署顺序
 
 ```
-第1步：凤雏（10.26.0.7）→ 系统 cron
+第1步：青鸾（10.26.0.7）→ 系统 cron
 第2步：仲达（10.26.0.5）→ 系统 cron
-第3步：孔明（本机）      → 系统 cron（需 ssh-copy-id）
+第3步：北辰（本机）      → 系统 cron（需 ssh-copy-id）
 第4步：OpenClaw（本机）  → openclaw cron add
 ```
 
@@ -18,18 +18,18 @@
 bash scripts/setup_cron.sh
 
 # 查看单个设备
-bash scripts/setup_cron.sh fengchu
+bash scripts/setup_cron.sh qingluan
 bash scripts/setup_cron.sh zhongda
-bash scripts/setup_cron.sh kongming
+bash scripts/setup_cron.sh beichen
 bash scripts/setup_cron.sh openclaw
 ```
 
 ## 三设备系统 cron
 
-### 凤雏（10.26.0.7）— 杨永兴隔夜套利
+### 青鸾（10.26.0.7）— 杨永兴隔夜套利
 ```cron
 35 09 * * 1-5 cd ~/股票市场扫描规则 && python3 run_morning_sell.py >> logs/morning_sell.log
-00 14 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy fengchu >> logs/fengchu.log
+00 14 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy qingluan >> logs/qingluan.log
 ```
 
 ### 仲达（10.26.0.5）— SEPA 基本面周筛
@@ -38,9 +38,9 @@ bash scripts/setup_cron.sh openclaw
 00 21 * * 0 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy zhongda >> logs/zhongda_weekly.log
 ```
 
-### 孔明（本机）— 数据聚合
+### 北辰（本机）— 数据聚合
 ```cron
-30 15 * * 1-5 cd /path/to/project && scp chenhe@10.26.0.7:~/.../*.json output/fengchu/candidates/
+30 15 * * 1-5 cd /path/to/project && scp chenhe@10.26.0.7:~/.../*.json output/qingluan/candidates/
 35 15 * * 1-5 cd /path/to/project && scp chenhe@10.26.0.7:~/.../*.json data/trades/
 00 16 * * 1-5 cd /path/to/project && python3 run_scan.py --compare
 00 22 * * 0 cd /path/to/project && python3 run_scan.py --merge-pools
@@ -48,23 +48,23 @@ bash scripts/setup_cron.sh openclaw
 
 ## OpenClaw 汇报层
 
-### 凤雏早盘复盘（交易日 10:00）
+### 青鸾早盘复盘（交易日 10:00）
 ```bash
 openclaw cron add \
-  --name "凤雏早盘复盘" \
+  --name "青鸾早盘复盘" \
   --cron "0 10 * * 1-5" \
   --session isolated \
-  --message "读取 output/fengchu/trades/ 下最新交易记录，生成早盘卖出复盘报告" \
+  --message "读取 output/qingluan/trades/ 下最新交易记录，生成早盘卖出复盘报告" \
   --announce --channel feishu --to "user:me"
 ```
 
-### 凤雏收盘复盘（交易日 15:30）
+### 青鸾收盘复盘（交易日 15:30）
 ```bash
 openclaw cron add \
-  --name "凤雏收盘复盘" \
+  --name "青鸾收盘复盘" \
   --cron "30 15 * * 1-5" \
   --session isolated \
-  --message "读取 output/fengchu/candidates/ 和 trades/ 下最新文件，生成收盘复盘报告" \
+  --message "读取 output/qingluan/candidates/ 和 trades/ 下最新文件，生成收盘复盘报告" \
   --announce --channel feishu --to "user:me"
 ```
 

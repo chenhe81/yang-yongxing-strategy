@@ -3,7 +3,7 @@ from src.data_fetcher import (
     fetch_all_stocks_spot, filter_market_data, has_20d_limit_up,
 )
 """
-历史回测 — 用最近 N 个交易日的数据回测凤雏策略
+历史回测 — 用最近 N 个交易日的数据回测青鸾策略
 """
 import argparse
 import json
@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 
-from src.strategies.fengchu import run_screening as fengchu_screen
+from src.strategies.qingluan import run_screening as qingluan_screen
 from src.simulation import SimulationEngine
 from src.reporting import generate_daily_report, save_report
 
@@ -33,10 +33,10 @@ def get_recent_trading_days(n: int) -> list:
     return [d.strftime("%Y-%m-%d") for d in sorted(recent.values)[:-1]]  # 去掉今天
 
 
-def backtest_fengchu(trading_days: list):
-    """凤雏策略历史回测"""
-    logger.info(f"=== 凤雏策略回测: {len(trading_days)} 个交易日 ===")
-    engine = SimulationEngine("fengchu_backtest", initial_capital=1_000_000)
+def backtest_qingluan(trading_days: list):
+    """青鸾策略历史回测"""
+    logger.info(f"=== 青鸾策略回测: {len(trading_days)} 个交易日 ===")
+    engine = SimulationEngine("qingluan_backtest", initial_capital=1_000_000)
     all_trades = []
 
     for i, date_str in enumerate(trading_days[:-1]):  # 最后一天不买入（没次日可卖）
@@ -65,7 +65,7 @@ def backtest_fengchu(trading_days: list):
             s["sector"] = ""
             candidates.append(s)
 
-        results = fengchu_screen(candidates, {})
+        results = qingluan_screen(candidates, {})
         buy_targets = [r for r in results if r["decision"] in ("buy", "strong_buy")][:2]
 
         # 买入
@@ -98,7 +98,7 @@ def backtest_fengchu(trading_days: list):
     trades = json.load(open(engine.trades_file)) if os.path.exists(engine.trades_file) else []
 
     print(f"\n{'='*60}")
-    print(f" 凤雏策略 回测结果")
+    print(f" 青鸾策略 回测结果")
     print(f" 回测区间: {trading_days[0]} ~ {trading_days[-1]}")
     print(f" 交易日数: {len(trading_days)}")
     print(f" 初始资金: {summary['initial_capital']:.0f}")
@@ -136,7 +136,7 @@ def main():
         logger.error("交易日数据不足，无法回测")
         return
 
-    backtest_fengchu(trading_days)
+    backtest_qingluan(trading_days)
 
 
 if __name__ == "__main__":

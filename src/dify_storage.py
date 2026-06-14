@@ -30,9 +30,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ── Dify 知识库名称映射（自动查找或创建） ──
 KNOWLEDGE_BASES = {
-    "fengchu": "凤雏每日扫描记录",    # 凤雏日筛结果
+    "qingluan": "青鸾每日扫描记录",    # 青鸾日筛结果
     "zhongda": "仲达每周扫描记录",     # 仲达周筛结果
-    "kongming": "孔明复盘报告",       # 孔明对比报告
+    "beichen": "北辰复盘报告",       # 北辰对比报告
     "pool_rules": "股票池分层管理规则", # 已有知识库
 }
 
@@ -177,9 +177,9 @@ def upload_document_to_kb(kb_name: str, title: str, content: str,
 # ── 专用上传函数 ──
 
 
-def upload_fengchu_scan(date: str, results: list, trades: list) -> bool:
-    """上传凤雏日筛结果到 Dify"""
-    lines = [f"# 凤雏每日扫描报告 — {date}", ""]
+def upload_qingluan_scan(date: str, results: list, trades: list) -> bool:
+    """上传青鸾日筛结果到 Dify"""
+    lines = [f"# 青鸾每日扫描报告 — {date}", ""]
     lines.append(f"## 扫描时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     lines.append(f"## 候选股数量: {len(results)}")
     lines.append("")
@@ -211,8 +211,8 @@ def upload_fengchu_scan(date: str, results: list, trades: list) -> bool:
                 lines.append(f"- {'✅' if pnl >= 0 else '❌'} {t['name']}({t['code']}) "
                              f"盈亏:{pnl:+.1f}%")
 
-    return upload_document_to_kb("凤雏每日扫描记录",
-                                 f"凤雏日筛_{date}", "\n".join(lines))
+    return upload_document_to_kb("青鸾每日扫描记录",
+                                 f"青鸾日筛_{date}", "\n".join(lines))
 
 
 def upload_zhongda_scan(date: str, results: list) -> bool:
@@ -233,10 +233,10 @@ def upload_zhongda_scan(date: str, results: list) -> bool:
                                  f"仲达周筛_{date}", "\n".join(lines))
 
 
-def upload_kongming_report(date: str, report: str) -> bool:
-    """上传孔明复盘报告到 Dify"""
-    return upload_document_to_kb("孔明复盘报告",
-                                 f"孔明复盘_{date}", report)
+def upload_beichen_report(date: str, report: str) -> bool:
+    """上传北辰复盘报告到 Dify"""
+    return upload_document_to_kb("北辰复盘报告",
+                                 f"北辰复盘_{date}", report)
 
 
 def is_configured() -> bool:

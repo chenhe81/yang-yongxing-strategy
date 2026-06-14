@@ -1,8 +1,8 @@
 """
-凤雏策略 — 基于杨永兴战法的技术面日筛 + 隔夜套利
+青鸾策略 — 基于杨永兴战法的技术面日筛 + 隔夜套利
 
 来源：
-  - 凤雏战法执行手册.md
+  - 青鸾战法执行手册.md
   - 杨永兴-十步尾盘买入法原文.md
   - 股票池分层管理规则 v1.0 算法A
 """
@@ -105,8 +105,8 @@ def check_hard_conditions(row: dict) -> tuple:
     return True, ""
 
 
-def calculate_fengchu_score(row: dict, sector_rank: Optional[int] = None) -> dict:
-    """计算凤雏评分，返回完整评分明细"""
+def calculate_qingluan_score(row: dict, sector_rank: Optional[int] = None) -> dict:
+    """计算青鸾评分，返回完整评分明细"""
     pct = row.get("pct_change", 0)
     vr = row.get("volume_ratio", 0)
     turn = row.get("turnover", 0)
@@ -155,7 +155,7 @@ def calculate_fengchu_score(row: dict, sector_rank: Optional[int] = None) -> dic
 
 def run_screening(candidates: List[dict], sector_ranks: Dict[str, int]) -> List[dict]:
     """
-    对候选股执行凤雏评分筛选
+    对候选股执行青鸾评分筛选
     candidates: 经过基础过滤的股票列表（含 pct_change, volume_ratio, turnover, float_mv, code, name 等）
     sector_ranks: {板块名称: 当日排名}
     返回: 评分结果列表，已排序
@@ -171,7 +171,7 @@ def run_screening(candidates: List[dict], sector_ranks: Dict[str, int]) -> List[
         if srank is not None and srank > CONFIG["板块排名上限"]:
             continue
 
-        score_info = calculate_fengchu_score(stock, sector_rank=srank)
+        score_info = calculate_qingluan_score(stock, sector_rank=srank)
         decision = "ignore"
         if score_info["score"] >= CONFIG["坚决买入阈值"]:
             decision = "strong_buy"

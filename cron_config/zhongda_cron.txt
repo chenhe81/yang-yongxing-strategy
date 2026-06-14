@@ -12,5 +12,5 @@
 # 每日 08:30 增量检查（新闻/公告/财报触发）
 30 08 * * 1-5 cd /home/chenhe/股票市场扫描规则 && python3 run_scan.py --strategy zhongda --incremental >> logs/cron_zhongda_daily.log 2>&1
 
-# 结果等待孔明拉取（scp 方式）
-# 孔明本机执行: scp chenhe@10.26.0.5:~/股票市场扫描规则/output/zhongda/* ./output/zhongda/
+# 结果等待北辰拉取（scp 方式）
+# 北辰本机执行: scp chenhe@10.26.0.5:~/股票市场扫描规则/output/zhongda/* ./output/zhongda/

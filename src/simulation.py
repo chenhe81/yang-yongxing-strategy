@@ -1,7 +1,7 @@
 """
 模拟交易引擎 — 跟踪虚拟持仓、盈亏计算
 
-凤雏规则：
+青鸾规则：
   - 尾盘买入（14:30-14:55），以当日收盘价作为买入价
   - 次日早盘卖出（09:30-10:00），以次日开盘价作为卖出价
   - 止损 -2%，止盈+3%，时间止损 10:00
@@ -97,7 +97,7 @@ class SimulationEngine:
 
     def buy(self, code: str, name: str, price: float, score: int,
             date: str, reason: str = "") -> bool:
-        """模拟买入，按凤雏规则：评分>=70，单只上限15%资金"""
+        """模拟买入，按青鸾规则：评分>=70，单只上限15%资金"""
         if len(self.positions) >= 1:
             logger.info(f"[{date}] 持仓已满(2只)，跳过 {name}({code})")
             return False

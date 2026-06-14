@@ -7,9 +7,9 @@
 #
 # 用法:
 #   bash setup_cron.sh                 → 显示全部
-#   bash setup_cron.sh fengchu         → 凤雏(10.26.0.7)
+#   bash setup_cron.sh qingluan         → 青鸾(10.26.0.7)
 #   bash setup_cron.sh zhongda          → 仲达(10.26.0.5)
-#   bash setup_cron.sh kongming        → 孔明(本机)
+#   bash setup_cron.sh beichen        → 北辰(本机)
 #   bash setup_cron.sh openclaw        → OpenClaw 汇报层
 # ═══════════════════════════════════════════════════════════════
 
@@ -18,29 +18,29 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SEP="────────────────────────────────────────────────────────"
 
-show_fengchu() {
+show_qingluan() {
     echo ""
     echo "$SEP"
-    echo "  凤雏（10.26.0.7）— 杨永兴隔夜套利"
+    echo "  青鸾（10.26.0.7）— 杨永兴隔夜套利"
     echo "  部署：系统 cron"
     echo "$SEP"
     echo ""
-    echo "步骤1：将项目复制到凤雏"
+    echo "步骤1：将项目复制到青鸾"
     echo "  scp -r $PROJECT_DIR chenhe@10.26.0.7:~/"
     echo ""
-    echo "步骤2：SSH 登录凤雏安装依赖"
+    echo "步骤2：SSH 登录青鸾安装依赖"
     echo "  ssh chenhe@10.26.0.7"
     echo "  pip install akshare pandas requests pyyaml"
     echo "  mkdir -p ~/股票市场扫描规则/logs"
     echo ""
-    echo "步骤3：在凤雏上设置系统 cron（crontab -e）"
+    echo "步骤3：在青鸾上设置系统 cron（crontab -e）"
     echo ""
-    echo "  # ── 凤雏（杨永兴隔夜套利）──"
+    echo "  # ── 青鸾（杨永兴隔夜套利）──"
     echo "  # 09:35 卖出昨日持仓（开盘价 +3%止盈 / -2%止损 / 10:00时间止损）"
     echo "  35 09 * * 1-5 cd ~/股票市场扫描规则 && python3 run_morning_sell.py >> logs/morning_sell.log 2>&1"
     echo ""
     echo "  # 14:00 全市场技术面日筛 + 模拟买入"
-    echo "  00 14 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy fengchu >> logs/fengchu.log 2>&1"
+    echo "  00 14 * * 1-5 cd ~/股票市场扫描规则 && python3 run_scan.py --strategy qingluan >> logs/qingluan.log 2>&1"
     echo ""
 }
 
@@ -70,10 +70,10 @@ show_zhongda() {
     echo ""
 }
 
-show_kongming() {
+show_beichen() {
     echo ""
     echo "$SEP"
-    echo "  孔明（本机）— 数据聚合 + 对比复盘"
+    echo "  北辰（本机）— 数据聚合 + 对比复盘"
     echo "  部署：系统 cron"
     echo "$SEP"
     echo ""
@@ -83,12 +83,12 @@ show_kongming() {
     echo ""
     echo "设置系统 cron（crontab -e）"
     echo ""
-    echo "  # ── 孔明（数据聚合）──"
-    echo "  # 15:30 从凤雏拉取今日扫描结果"
-    echo "  30 15 * * 1-5 cd $PROJECT_DIR && scp chenhe@10.26.0.7:~/股票市场扫描规则/output/fengchu/candidates/*.json output/fengchu/candidates/ >> logs/fetch.log 2>&1"
+    echo "  # ── 北辰（数据聚合）──"
+    echo "  # 15:30 从青鸾拉取今日扫描结果"
+    echo "  30 15 * * 1-5 cd $PROJECT_DIR && scp chenhe@10.26.0.7:~/股票市场扫描规则/output/qingluan/candidates/*.json output/qingluan/candidates/ >> logs/fetch.log 2>&1"
     echo ""
-    echo "  # 15:35 从凤雏拉取交易记录"
-    echo "  35 15 * * 1-5 cd $PROJECT_DIR && scp chenhe@10.26.0.7:~/股票市场扫描规则/data/trades/fengchu_*.json data/trades/ >> logs/fetch.log 2>&1"
+    echo "  # 15:35 从青鸾拉取交易记录"
+    echo "  35 15 * * 1-5 cd $PROJECT_DIR && scp chenhe@10.26.0.7:~/股票市场扫描规则/data/trades/qingluan_*.json data/trades/ >> logs/fetch.log 2>&1"
     echo ""
     echo "  # 16:00 生成双策略对比报告"
     echo "  00 16 * * 1-5 cd $PROJECT_DIR && python3 run_scan.py --compare >> logs/compare.log 2>&1"
@@ -110,14 +110,14 @@ show_openclaw() {
     echo ""
     echo "前提：OpenClaw Gateway 正在运行，已连接飞书频道"
     echo ""
-    echo "凤雏复盘（交易日 10:00 发送结果到飞书）："
+    echo "青鸾复盘（交易日 10:00 发送结果到飞书）："
     echo ""
     echo "openclaw cron add \\"
-    echo "  --name \"凤雏早盘复盘\" \\"
+    echo "  --name \"青鸾早盘复盘\" \\"
     echo "  --cron \"0 10 * * 1-5\" \\"
     echo "  --session isolated \\"
-    echo "  --message \"读取 ~/股票市场扫描规则/output/fengchu/trades/ 下的最新交易记录，"
-    echo "             生成今日凤雏早盘卖出复盘报告。"
+    echo "  --message \"读取 ~/股票市场扫描规则/output/qingluan/trades/ 下的最新交易记录，"
+    echo "             生成今日青鸾早盘卖出复盘报告。"
     echo "             报告格式："
     echo "             1. 今日卖出股票列表（盈亏%）"
     echo "             2. 累计收益"
@@ -125,14 +125,14 @@ show_openclaw() {
     echo "  --announce --channel feishu --to \"user:me\""
     echo ""
     echo ""
-    echo "凤雏收盘复盘（交易日 15:30）："
+    echo "青鸾收盘复盘（交易日 15:30）："
     echo ""
     echo "openclaw cron add \\"
-    echo "  --name \"凤雏收盘复盘\" \\"
+    echo "  --name \"青鸾收盘复盘\" \\"
     echo "  --cron \"30 15 * * 1-5\" \\"
     echo "  --session isolated \\"
-    echo "  --message \"读取 ~/股票市场扫描规则/output/fengchu/candidates/ 和 trades/ 下的最新文件，"
-    echo "             生成今日凤雏策略收盘复盘报告。"
+    echo "  --message \"读取 ~/股票市场扫描规则/output/qingluan/candidates/ 和 trades/ 下的最新文件，"
+    echo "             生成今日青鸾策略收盘复盘报告。"
     echo "             包含今日筛选结果、买入记录、累计盈亏\" \\"
     echo "  --announce --channel feishu --to \"user:me\""
     echo ""
@@ -145,7 +145,7 @@ show_openclaw() {
     echo "  --session isolated \\"
     echo "  --message \"读取 ~/股票市场扫描规则/reports/comparison/ 下的对比报告，"
     echo "             生成本周双策略战绩周报。"
-    echo "             对比凤雏日筛 vs 仲达周筛的总收益率、胜率\" \\"
+    echo "             对比青鸾日筛 vs 仲达周筛的总收益率、胜率\" \\"
     echo "  --announce --channel feishu --to \"user:me\""
     echo ""
 }
@@ -157,7 +157,7 @@ show_all() {
     echo "║  汇报层：OpenClaw cron（AI推送到飞书）                 ║"
     echo "╚══════════════════════════════════════════════════════╝"
     echo ""
-    show_fengchu
+    show_qingluan
     echo ""
     echo "════════════════════════════════════════════════════"
     echo ""
@@ -165,7 +165,7 @@ show_all() {
     echo ""
     echo "════════════════════════════════════════════════════"
     echo ""
-    show_kongming
+    show_beichen
     echo ""
     echo "════════════════════════════════════════════════════"
     echo ""
@@ -174,21 +174,21 @@ show_all() {
     echo "════════════════════════════════════════════════════"
     echo ""
     echo "部署顺序："
-    echo "  第1步：凤雏（10.26.0.7）— 系统 cron"
+    echo "  第1步：青鸾（10.26.0.7）— 系统 cron"
     echo "  第2步：仲达（10.26.0.5）— 系统 cron"
-    echo "  第3步：孔明（本机）— 系统 cron（需 ssh-copy-id）"
+    echo "  第3步：北辰（本机）— 系统 cron（需 ssh-copy-id）"
     echo "  第4步：OpenClaw（本机）— openclaw cron add"
     echo ""
 }
 
 case "${1:-all}" in
-    fengchu|0.7) show_fengchu ;;
+    qingluan|0.7) show_qingluan ;;
     zhongda|0.5)  show_zhongda ;;
-    kongming|local|本机) show_kongming ;;
+    beichen|local|本机) show_beichen ;;
     openclaw|ai) show_openclaw ;;
     all) show_all ;;
     help|--help|-h)
-        echo "用法: bash $0 [fengchu|zhongda|kongming|openclaw|all]"
+        echo "用法: bash $0 [qingluan|zhongda|beichen|openclaw|all]"
         exit 0
         ;;
     *) echo "未知参数: $1（使用 bash $0 help 查看帮助）"; exit 1 ;;
