@@ -1,9 +1,16 @@
-# 刘秀策略配置 — SEPA 趋势模板 + 基本面周筛
+# 刘秀策略配置 — Serenity 紫苏叶五因子模型 + SEPA 趋势模板
+# 
+# Serenity 紫苏叶五因子模型（原创方法论）：
+# ① 确定需求  — AI/新能源/国产替代确定性链条？下游CapEx增长？
+# ② 受限供给  — 全球供给瓶颈？产业链壁垒？
+# ③ 低关注度  — 券商覆盖数、研报数量（价值洼地）
+# ④ 价值捕获  — 毛利率、客户锁定性、定价权
+# ⑤ 催化剂    — 未来1-3月关键事件（财报/量产/政策）
 
 strategy:
   name: "刘秀"
   type: "fundamental_weekly"
-  description: "五因子评分模型 + SEPA 趋势模板，全仓中线持有"
+  description: "Serenity 紫苏叶五因子模型 + SEPA 趋势模板 + VCP形态，全仓中线持有"
 
 time:
   full_scan: "周日 21:00"
@@ -16,14 +23,19 @@ screening:
   factors:
     确定需求:
       weight: 25
+      description: "AI/新能源/国产替代确定性链条？下游CapEx增长？"
     受限供给:
       weight: 25
+      description: "全球供给瓶颈？产业链壁垒？"
     低关注度:
       weight: 15
+      description: "券商覆盖数、研报数量（价值洼地挖掘）"
     价值捕获:
       weight: 20
+      description: "毛利率、客户锁定性、定价权"
     催化剂:
       weight: 15
+      description: "未来1-3月关键事件（财报/量产/政策）"
   入池门槛: 70
   sepa:
     enabled: true
