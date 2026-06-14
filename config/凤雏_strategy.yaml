@@ -1,10 +1,9 @@
 # 凤雏策略配置 — 杨永兴战法（技术面日筛+隔夜套利）
-# 来源：凤雏战法执行手册.md / 股票池分层管理规则 v1.0 算法A
 
 strategy:
   name: "凤雏"
   type: "technical_daily"
-  description: "杨永兴战法 — 尾盘技术面选股，隔夜套利"
+  description: "杨永兴战法 — 尾盘技术面选股，隔夜套利，全仓出击"
 
 time:
   scan_time: "14:00"
@@ -29,11 +28,11 @@ scoring:
   坚决买入阈值: 80
 
 risk:
-  同时持仓上限: 2
-  单只仓位上限_pct: 15
+  同时持仓上限: 1      # 全仓只买1只
+  单只仓位上限_pct: 100 # 全仓，有多少打多少
   止损_pct: -2.0
   止盈_pct: 3.0
-  时间止损_minutes: 30  # 10:00 前必须卖出
+  时间止损_minutes: 30
 
 capital:
-  initial: 1000000
+  initial: 2000         # 初始资金2000元

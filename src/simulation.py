@@ -98,27 +98,28 @@ class SimulationEngine:
     def buy(self, code: str, name: str, price: float, score: int,
             date: str, reason: str = "") -> bool:
         """模拟买入，按凤雏规则：评分>=70，单只上限15%资金"""
-        if len(self.positions) >= 2:
+        if len(self.positions) >= 1:
             logger.info(f"[{date}] 持仓已满(2只)，跳过 {name}({code})")
             return False
 
-        # 单只上限 15% 仓位
-        max_per_position = self.initial_capital * 0.15
-        shares = int(max_per_position / price)
+        # 全仓：把所有现金打进去
+        max_position = self.cash * 0.95  # 留5%缓冲区
+        shares = int(max_position / price)
         cost = shares * price
-
-        if cost > self.cash:
-            shares = int(self.cash / price)
-            cost = shares * price
-            if shares <= 100:
-                logger.info(f"[{date}] 资金不足，跳过 {name}({code})")
-                return False
 
         # 按 100 股取整
         shares = (shares // 100) * 100
         if shares < 100:
-            logger.info(f"[{date}] 资金不足以买100股 {name}({code})")
+            logger.info(f"[{date}] 资金不足以买100股 {name}({code})，跳过")
             return False
+
+        cost = shares * price
+        if cost > self.cash:
+            shares = int(self.cash / price)
+            shares = (shares // 100) * 100
+            if shares < 100:
+                return False
+            cost = shares * price
 
         cost = shares * price
         self.cash -= cost
