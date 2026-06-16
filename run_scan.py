@@ -2,8 +2,8 @@
 每日市场扫描主入口
 
 用法:
-  python run_scan.py --strategy qingluan          # 青鸾日筛
-  python run_scan.py --strategy zhongda           # 仲达周筛
+  python run_scan.py --strategy fengchu          # 凤雏日筛
+  python run_scan.py --strategy liuxiu           # 刘秀周筛
   python run_scan.py --both                       # 双策略
 """
 import argparse
@@ -22,8 +22,8 @@ from src.data_fetcher import (
     fetch_sector_top_gainers, fetch_stock_sector_map,
     has_20d_limit_up, is_trading_day, get_next_trading_day,
 )
-from src.strategies.qingluan import run_screening as qingluan_screen
-from src.strategies.zhongda import calculate_zhongda_score, score_sepa_template
+from src.strategies.fengchu import run_screening as fengchu_screen
+from src.strategies.liuxiu import calculate_liuxiu_score, score_sepa_template
 from src.simulation import SimulationEngine
 from src.reporting import (
     generate_daily_report, generate_comparison_report, save_report,
@@ -45,7 +45,7 @@ def build_sector_ranks() -> dict:
         return {}
 
 
-def process_qingluan_scan(date_str: str):
+def process_fengchu_scan(date_str: str):
     """青鸾：日筛 + 全仓模拟交易"""
     logger.info(f"═══ 青鸾策略日筛 [{date_str}] ═══")
 
@@ -67,18 +67,18 @@ def process_qingluan_scan(date_str: str):
         s["volume_stable"] = True
         s["no_resistance"] = True
 
-    results = qingluan_screen(stocks, sector_ranks)
+    results = fengchu_screen(stocks, sector_ranks)
 
-    out_path = os.path.join(BASE_DIR, "output", "qingluan", "candidates",
+    out_path = os.path.join(BASE_DIR, "output", "fengchu", "candidates",
                             f"screening_{date_str}.json")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2, default=str)
 
-    engine = SimulationEngine("qingluan", initial_capital=2000)
+    engine = SimulationEngine("fengchu", initial_capital=2000)
 
     # 先卖出昨日持仓
-    old_portfolio = load_portfolio("qingluan")
+    old_portfolio = load_portfolio("fengchu")
     if old_portfolio.get("positions"):
         for pos in old_portfolio["positions"]:
             code = pos["code"]
@@ -109,8 +109,8 @@ def process_qingluan_scan(date_str: str):
                    price=t.get("price", 0), score=t["score"],
                    date=date_str, reason=f"评分{t['score']} 全仓")
 
-    report = generate_daily_report("qingluan", date_str, results)
-    path = save_report(report, "qingluan", date_str, "daily")
+    report = generate_daily_report("fengchu", date_str, results)
+    path = save_report(report, "fengchu", date_str, "daily")
     logger.info(f"青鸾日报 → {path}")
 
     summary = engine.get_summary()
@@ -121,7 +121,7 @@ def process_qingluan_scan(date_str: str):
     return results
 
 
-def process_zhongda_scan(date_str: str):
+def process_liuxiu_scan(date_str: str):
     """仲达：SEPA周筛 + 全仓模拟交易"""
     logger.info(f"═══ 仲达策略周筛 [{date_str}] ═══")
 
@@ -154,7 +154,7 @@ def process_zhongda_scan(date_str: str):
         pct_5d = s.get("pct_5d", 0) or 0
         pct_60d = s.get("pct_60d", 0) or 0
 
-        score_info = calculate_zhongda_score(
+        score_info = calculate_liuxiu_score(
             code=code, name=s.get("name", ""),
             df_hist=hist, pct_5d=float(pct_5d),
             pct_60d=float(pct_60d),
@@ -167,19 +167,19 @@ def process_zhongda_scan(date_str: str):
 
     results.sort(key=lambda x: x["score"], reverse=True)
 
-    out_path = os.path.join(BASE_DIR, "output", "zhongda", "candidates",
+    out_path = os.path.join(BASE_DIR, "output", "liuxiu", "candidates",
                             f"screening_{date_str}.json")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2, default=str)
 
     # 模拟交易（全仓买入#1）
-    engine = SimulationEngine("zhongda", initial_capital=2000)
+    engine = SimulationEngine("liuxiu", initial_capital=2000)
     buy_targets = [r for r in results if r["decision"] in ("buy", "strong_buy")][:1]
     for t in buy_targets:
         engine.buy(code=t["code"], name=t["name"],
                    price=t.get("price", 0), score=t["score"],
-                   date=date_str, reason=f"仲达周筛 评分{t['score']} 全仓")
+                   date=date_str, reason=f"刘秀周筛 评分{t['score']} 全仓")
 
     # 打印结果
     print(f"\n【仲达 {date_str}】SEPA周筛")
@@ -197,11 +197,11 @@ def process_zhongda_scan(date_str: str):
         print(f"  本次无符合条件的买入")
 
     # 保存快照
-    report_path = os.path.join(BASE_DIR, "output", "zhongda", "reports",
+    report_path = os.path.join(BASE_DIR, "output", "liuxiu", "reports",
                                 f"market_snapshot_{date_str}.md")
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
     sectors_info = dict(list(sector_ranks.items())[:5])
-    lines = [f"# 仲达周筛 {date_str}", "",
+    lines = [f"# 刘秀周筛 {date_str}", "",
              f"候选: {len(results)} 只 | 买入: {len(buy_targets)} 只",
              f"板块: {sectors_info}", ""]
     if buy_targets:
@@ -213,7 +213,7 @@ def process_zhongda_scan(date_str: str):
 
 def main():
     parser = argparse.ArgumentParser(description="每日市场扫描")
-    parser.add_argument("--strategy", choices=["qingluan", "zhongda", "both"], default="qingluan")
+    parser.add_argument("--strategy", choices=["fengchu", "liuxiu", "both"], default="fengchu")
     parser.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"))
     args = parser.parse_args()
     date_str = args.date
@@ -223,10 +223,10 @@ def main():
         return
 
     f_results = l_results = []
-    if args.strategy in ("qingluan", "both"):
-        f_results = process_qingluan_scan(date_str)
-    if args.strategy in ("zhongda", "both"):
-        l_results = process_zhongda_scan(date_str)
+    if args.strategy in ("fengchu", "both"):
+        f_results = process_fengchu_scan(date_str)
+    if args.strategy in ("liuxiu", "both"):
+        l_results = process_liuxiu_scan(date_str)
 
     if args.strategy == "both":
         report = generate_comparison_report()
