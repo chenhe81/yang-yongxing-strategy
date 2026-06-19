@@ -22,13 +22,14 @@ from src.data_fetcher import (
     fetch_sector_top_gainers, fetch_stock_sector_map,
     has_20d_limit_up, is_trading_day, get_next_trading_day,
 )
-from src.strategies.fengchu import run_screening as fengchu_screen
-from src.strategies.liuxiu import calculate_liuxiu_score, score_sepa_template
+from src.strategies.qingluan import run_screening as qingluan_screen
+from src.strategies.zhongda import calculate_zhongda_score, score_sepa_template
 from src.simulation import SimulationEngine
 from src.reporting import (
     generate_daily_report, generate_comparison_report, save_report,
     load_portfolio, load_trades,
 )
+from src.database import build_daily_cache, get_db
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(message)s")
@@ -215,9 +216,26 @@ def main():
     parser = argparse.ArgumentParser(description="每日市场扫描")
     parser.add_argument("--strategy", choices=["fengchu", "liuxiu", "both"], default="fengchu")
     parser.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"))
+    parser.add_argument("--build-cache", action="store_true",
+                        help="收盘后构建全市场日线缓存到 SQLite")
+    parser.add_argument("--cache-stats", action="store_true",
+                        help="查看缓存统计信息")
     args = parser.parse_args()
     date_str = args.date
 
+    if args.cache_stats:
+        print("📊 数据缓存统计")
+        s = get_db().stats()
+        for k, v in s.items():
+            print(f"  {k}: {v}")
+        return
+    
+    if args.build_cache:
+        print(f"📦 构建日线缓存 [{date_str}]")
+        r = build_daily_cache(date=date_str, max_workers=10)
+        print(f"  已缓存: {r.get('cached',0)}, 新增: {r.get('fetched',0)}, 失败: {r.get('errors',0)}")
+        return
+    
     if not is_trading_day(date_str):
         logger.info(f"{date_str} 不是交易日")
         return

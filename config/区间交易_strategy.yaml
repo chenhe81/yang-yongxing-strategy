@@ -1,0 +1,16 @@
+name: "均值回归-量能确认"
+capital: 50000
+start_date: "20260301"
+end_date: ""
+select_buy:
+  - "close < BOLL(close, 20, 2)[2]"
+  - "volume > TS_MEAN(volume, 5) * 0.8"
+buy_at_least_count: 2
+select_sell:
+  - "close > BOLL(close, 20, 2)[0]"
+sell_at_least_count: 1
+order_by_signal: "RETURNS(close, 5)"
+order_by_topK: 2
+order_by_DESC: false
+hold_days_max: 45
+loss_stop_pct: -5.0

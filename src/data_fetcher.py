@@ -20,6 +20,7 @@ import akshare as ak
 import pandas as pd
 import requests
 
+from src.database import get_db
 logger = logging.getLogger(__name__)
 
 # ── HTTP 会话 ──
@@ -125,11 +126,24 @@ def get_next_trading_day(date_str: str) -> Optional[str]:
 def fetch_stock_list() -> pd.DataFrame:
     """获取全市场股票列表（已排除禁止股）"""
     try:
+        db = get_db()
+        cached = db.get_stock_list()
+        if not cached.empty and len(cached) > 100:
+            logger.info(f"从缓存读取股票列表 ({len(cached)} 只)")
+            return cached
+    except Exception:
+        pass
+    try:
         df = ak.stock_info_a_code_name()
         df = df.rename(columns={"code": "code", "name": "name"})
         df["code"] = df["code"].astype(str).str.zfill(6)
         df = df[~df["code"].apply(is_permanently_excluded)]
         df = df[~df["name"].str.contains("ST|退市", na=False)]
+        try:
+            get_db().save_stock_list(df)
+            logger.info(f"股票列表已缓存 ({len(df)} 只)")
+        except Exception:
+            pass
         return df
     except Exception as e:
         logger.error(f"获取股票列表失败: {e}")
@@ -186,12 +200,28 @@ def fetch_all_stocks_spot() -> pd.DataFrame:
     logger.info(f"共 {len(codes)} 只候选股票，正在获取实时行情...")
     df = _batch_query_ulist(codes)
     logger.info(f"获取到 {len(df)} 只实时行情")
+    if not df.empty:
+        try:
+            today = datetime.now().strftime("%Y-%m-%d")
+            get_db().save_snapshot(df, today)
+        except Exception:
+            pass
     return df
 
 
 # ── 个股历史 ──
-def fetch_stock_history(code: str, days: int = 60) -> pd.DataFrame:
+def fetch_stock_history(code: str, days: int = 60, use_cache: bool = True) -> pd.DataFrame:
     """获取个股历史日线 — KLine API"""
+    if use_cache:
+        try:
+            db = get_db()
+            cached = db.get_klines(code, days + 10)
+            if not cached.empty and len(cached) >= min(days, 20):
+                logger.debug(f"{code} 日线缓存命中 ({len(cached)} 天)")
+                return cached
+        except Exception:
+            pass
+    
     url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
     end = datetime.now().strftime("%Y%m%d")
     secid = f"1.{code}" if str(code).startswith(("6", "9")) else f"0.{code}"
@@ -224,6 +254,10 @@ def fetch_stock_history(code: str, days: int = 60) -> pd.DataFrame:
     df = pd.DataFrame(records)
     if not df.empty:
         df["date"] = pd.to_datetime(df["date"])
+        try:
+            get_db().save_klines(code, df)
+        except Exception:
+            pass
     return df
 
 
@@ -251,6 +285,14 @@ def fetch_sector_top_gainers(top_n: int = 5) -> pd.DataFrame:
 
 def fetch_stock_sector_map() -> dict:
     """获取个股所属板块映射"""
+    try:
+        cached = get_db().get_sector_map()
+        if cached:
+            logger.info(f"从缓存读取板块映射 ({len(cached)} 个板块)")
+            return cached
+    except Exception:
+        pass
+    
     url = "https://push2.eastmoney.com/api/qt/clist/get"
     params = {
         "pn": 1, "pz": 6000, "po": 1, "np": 1,
@@ -262,11 +304,25 @@ def fetch_stock_sector_map() -> dict:
     data = _em_get(url, params)
     if not data or "data" not in data:
         return {}
-    return {item["f12"]: item.get("f14", "") for item in data["data"].get("diff", [])}
+    result = {item["f12"]: item.get("f14", "") for item in data["data"].get("diff", [])}
+    try:
+        get_db().save_sector_map(result)
+    except Exception:
+        pass
+    return result
 
 
 # ── 涨停判断 ──
 def has_20d_limit_up(code: str) -> bool:
+    """判断最近20个交易日是否有涨停（>=9.5%）"""
+    try:
+        # 优先从缓存读
+        db = get_db()
+        cached = db.get_klines(code, 35)
+        if not cached.empty and len(cached) >= 20:
+            return (cached.tail(20)["pct_change"] >= 9.5).any()
+    except Exception:
+        pass
     hist = fetch_stock_history(code, days=30)
     if hist.empty:
         return False
