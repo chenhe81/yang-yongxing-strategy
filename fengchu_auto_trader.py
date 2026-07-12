@@ -33,6 +33,7 @@ import csv
 import re
 from datetime import datetime, timedelta
 from collections import defaultdict
+from src.tools.limit_pool import em_zt_pool, check_imports_ok
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 # ── 因子模块 ──
@@ -1155,7 +1156,6 @@ def _check_buys_mean_reversion(pf: dict, prices: dict, now: datetime, today: str
     # 涨停池排除 — 排除当日涨停票，避免追板
     _zt_codes = set()
     try:
-        from src.tools.limit_pool import em_zt_pool, check_imports_ok
         if check_imports_ok():
             for s in em_zt_pool(today.replace("-", "")):
                 _zt_codes.add(s["code"])
