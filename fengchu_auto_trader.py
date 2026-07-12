@@ -342,6 +342,53 @@ def _fetch_macro_status() -> dict | None:
         _MACRO_TRIED_TODAY = True
         print(f"  ⚠️ 读取宏观数据失败: {e}", flush=True)
         return None
+# ── HMM 市场状态（通过 SSH 读取算力中心 183.131.24.109 的 HMM 分析结果，每个交易日缓存一次） ──
+_HMM_CACHE = None
+_HMM_CACHE_DATE = None
+_HMM_TRIED_TODAY = False
+
+def _fetch_hmm_status() -> dict | None:
+    """读取算力中心 HMM 市场状态分析结果，缓存一天
+    
+    返回: {
+        "current_state": 0/1/2,       # 0=下跌 1=震荡 2=上涨
+        "current_state_label": str,
+        "hmm_score": int,             # 0-40 雷达分
+        "confidence": float,
+        "date": str,                  # 数据日期
+        ...
+    }
+    """
+    global _HMM_CACHE, _HMM_CACHE_DATE, _HMM_TRIED_TODAY
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _HMM_CACHE_DATE == today:
+        if _HMM_CACHE is not None:
+            return _HMM_CACHE
+        if _HMM_TRIED_TODAY:
+            return None
+    else:
+        _HMM_TRIED_TODAY = False
+    try:
+        result = subprocess.run(
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", "-p", "3100",
+             "arcvideo@183.131.24.109",
+             "cat /home/arcvideo/hmm_analysis/output/latest.json"],
+            capture_output=True, text=True, timeout=10
+        )
+        _HMM_TRIED_TODAY = True
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        data = json.loads(result.stdout)
+        if data.get("date") != today:
+            return None
+        _HMM_CACHE = data
+        _HMM_CACHE_DATE = today
+        return data
+    except Exception as e:
+        _HMM_TRIED_TODAY = True
+        print(f"  ⚠️ 读取HMM状态失败: {e}", flush=True)
+        return None
+
 def fetch_enhanced_score() -> dict:
     """获取增强评分（含热点板块、行业趋势等）
     
@@ -357,7 +404,11 @@ def fetch_enhanced_score() -> dict:
                "market_regime": "unknown", "score_details": {}}
     try:
         # 优先用本地雷达评分
-        radar = calculate_radar_score()
+        # ── 读取远程 HMM 状态（算力中心 GPU 加速版本） ──
+        hmm_data = _fetch_hmm_status()
+        remote_hmm_score = hmm_data.get("hmm_score") if hmm_data else None
+
+        radar = calculate_radar_score(remote_hmm_score=remote_hmm_score)
         if radar and "score" in radar:
             result = {
                 "score": radar.get("score", 50),

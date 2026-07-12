@@ -288,7 +288,7 @@ def _calc_sentiment_score(market_df: pd.DataFrame) -> tuple:
     return min(15, max(0, score)), label
 
 
-def calculate_radar_score() -> dict:
+def calculate_radar_score(remote_hmm_score: int = None) -> dict:
     """
     计算行情雷达评分
 
@@ -401,15 +401,21 @@ def calculate_radar_score() -> dict:
     
     # ── HMM市场状态识别（补强趋势评分） ──
     hmm_score = 0
-    try:
-        _c = market_df["avg_close"]
-        if len(_c) > 100:
-            _rets = (_c.pct_change().dropna().values).reshape(-1, 1)
-            _h = HMMRegimeDetector(n_states=3)
-            hmm_score = _h.score_regime(_rets[-60:])
-            trend_score = max(0, min(40, int(trend_score * 0.6 + hmm_score * 0.4)))
-    except Exception:
-        pass
+    if remote_hmm_score is not None:
+        # 算力中心远程 HMM 结果（GPU加速，基于上证指数）
+        hmm_score = remote_hmm_score
+        trend_score = max(0, min(40, int(trend_score * 0.6 + hmm_score * 0.4)))
+    else:
+        # 本地 HMM 计算（回退方案，基于全市场等权平均）
+        try:
+            _c = market_df["avg_close"]
+            if len(_c) > 100:
+                _rets = (_c.pct_change().dropna().values).reshape(-1, 1)
+                _h = HMMRegimeDetector(n_states=3)
+                hmm_score = _h.score_regime(_rets[-60:])
+                trend_score = max(0, min(40, int(trend_score * 0.6 + hmm_score * 0.4)))
+        except Exception:
+            pass
     
     total = trend_score + vol_score + vol_health_score + sent_score
     
