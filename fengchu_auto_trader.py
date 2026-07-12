@@ -43,7 +43,6 @@ try:
     from src.factors.deepseek_multi_factor import calc_cross_sectional_scores, calc_composite_score
     from src.factors.quality_screen import check_quality
     from src.tools.fibonacci import calc_fibonacci_score
-    from src.tools.factor_pca import FactorPCA
     from src.tools.portfolio_opt import half_kelly, allocate_by_kelly, kelly_criterion
     from src.data_fetcher import fetch_stock_history as _fetch_daily_data
     from src.stock_pool import load_stock_pool as _load_state_owned_pool
@@ -433,6 +432,106 @@ def _fetch_garch_status() -> dict | None:
         _GARCH_TRIED_TODAY = True
         print(f"  ⚠️ 读取GARCH数据失败: {e}", flush=True)
         return None
+# ── PCA 因子权重（通过 SSH 读取算力中心 183.131.24.109 的 PCA 分析结果，每个交易日缓存一次） ──
+_PCA_CACHE = None
+_PCA_CACHE_DATE = None
+_PCA_TRIED_TODAY = False
+
+
+def _fetch_pca_status() -> dict | None:
+    """读取算力中心 PCA 因子权重分析结果，缓存一天
+
+    返回: {
+        "pca_weights": [w1, w2, w3],         # 动量、趋势、成交量权重
+        "pca_weights_dict": {...},            # 因子名->权重的字典
+        "explained_variance_ratio": [...],    # 各主成分解释方差比
+        "first_component_var_ratio": float,   # 第一主成分解释方差
+        "n_stocks": int,                      # 有效股票数
+        "date": str,                          # 数据日期
+        "status": str,                        # "ok" 或错误状态
+    }
+    """
+    global _PCA_CACHE, _PCA_CACHE_DATE, _PCA_TRIED_TODAY
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _PCA_CACHE_DATE == today:
+        if _PCA_CACHE is not None:
+            return _PCA_CACHE
+        if _PCA_TRIED_TODAY:
+            return None
+    else:
+        _PCA_TRIED_TODAY = False
+    try:
+        result = subprocess.run(
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", "-p", "3100",
+             "arcvideo@183.131.24.109",
+             "cat /home/arcvideo/pca_analysis/output/latest.json"],
+            capture_output=True, text=True, timeout=10
+        )
+        _PCA_TRIED_TODAY = True
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        data = json.loads(result.stdout)
+        if data.get("date") != today:
+            return None
+        _PCA_CACHE = data
+        _PCA_CACHE_DATE = today
+        return data
+    except Exception as e:
+        _PCA_TRIED_TODAY = True
+        print(f"  \u26a0\ufe0f \u8bfb\u53d6PCA\u6570\u636e\u5931\u8d25: {e}", flush=True)
+        return None
+
+
+# ── 神经网络信号（通过 SSH 读取算力中心 183.131.24.109 的 GPU 训练结果，每个交易日缓存一次） ──
+_NEURAL_CACHE = None
+_NEURAL_CACHE_DATE = None
+_NEURAL_TRIED_TODAY = False
+
+def _fetch_neural_status() -> dict | None:
+    """读取算力中心神经网络信号分析结果，缓存一天
+
+    返回: {
+        "neural_score": int,          # 0-40 雷达分
+        "neural_score_label": str,    # 看涨/看跌/中性
+        "signal": int,                # 1=看涨 -1=看跌 0=中性
+        "up_probability": float,      # 上涨概率
+        "confidence": float,          # 置信度
+        "validation_accuracy": float, # 验证准确率
+        "date": str,
+    }
+    """
+    global _NEURAL_CACHE, _NEURAL_CACHE_DATE, _NEURAL_TRIED_TODAY
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _NEURAL_CACHE_DATE == today:
+        if _NEURAL_CACHE is not None:
+            return _NEURAL_CACHE
+        if _NEURAL_TRIED_TODAY:
+            return None
+    else:
+        _NEURAL_TRIED_TODAY = False
+    try:
+        result = subprocess.run(
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", "-p", "3100",
+             "arcvideo@183.131.24.109",
+             "cat /home/arcvideo/neural_analysis/output/latest.json"],
+            capture_output=True, text=True, timeout=10
+        )
+        _NEURAL_TRIED_TODAY = True
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        data = json.loads(result.stdout)
+        if data.get("date") != today:
+            return None
+        _NEURAL_CACHE = data
+        _NEURAL_CACHE_DATE = today
+        return data
+    except Exception as e:
+        _NEURAL_TRIED_TODAY = True
+        print(f"  ⚠️ 读取神经网络信号失败: {e}", flush=True)
+        return None
+
+
+# ── 增强评分（算力中心融合） ──
 
 
 def fetch_enhanced_score() -> dict:
@@ -557,8 +656,24 @@ def score_momentum_stocks(codes: list, prices: dict) -> dict:
             close = df["close"] if isinstance(df["close"], pd.Series) else pd.Series(df["close"].values)
             volume = df["volume"] if isinstance(df["volume"], pd.Series) else pd.Series(df["volume"].values)
             
-            from src.factors.deepseek_multi_factor import calc_composite_score
-            ds_score = calc_composite_score(close, volume)
+            # PCA权重加权评分（从算力中心读取每日最优因子权重）
+            from src.factors.deepseek_multi_factor import calc_momentum, calc_trend_strength, calc_volume_ratio
+            mom_s = calc_momentum(close, 20)
+            ts_s = calc_trend_strength(close)
+            vr_s = calc_volume_ratio(volume, 20)
+            mom_v = float(mom_s.iloc[-1]) if len(mom_s) > 0 and not pd.isna(mom_s.iloc[-1]) else 0.0
+            ts_v = float(ts_s.iloc[-1]) if len(ts_s) > 0 and not pd.isna(ts_s.iloc[-1]) else 0.0
+            vr_v = float(vr_s.iloc[-1]) if len(vr_s) > 0 and not pd.isna(vr_s.iloc[-1]) else 1.0
+            
+            pca_data = _fetch_pca_status()
+            if pca_data and pca_data.get("status") == "ok" and pca_data.get("pca_weights_dict"):
+                w = pca_data["pca_weights_dict"]
+                w_mom = w.get("momentum_20", 1/3)
+                w_ts = w.get("trend_strength", 1/3)
+                w_vr = w.get("volume_ratio", 1/3)
+                ds_score = w_mom * mom_v + w_ts * ts_v + w_vr * vr_v
+            else:
+                ds_score = mom_v + ts_v + vr_v  # 降级：等权fallback
             
             # BB 信号
             bb = generate_bb_signal(close, prices.get(code, {}).get("price"))
