@@ -1152,6 +1152,16 @@ def _check_buys_mean_reversion(pf: dict, prices: dict, now: datetime, today: str
     if not profile:
         return []
     
+    # 涨停池排除 — 排除当日涨停票，避免追板
+    _zt_codes = set()
+    try:
+        from src.tools.limit_pool import em_zt_pool, check_imports_ok
+        if check_imports_ok():
+            for s in em_zt_pool(today.replace("-", "")):
+                _zt_codes.add(s["code"])
+    except Exception:
+        pass
+    
     # 动态 zone 阈值（根据雷达分数调整）
     if radar_score >= 80:
         zone_threshold = 0.20
@@ -1174,6 +1184,8 @@ def _check_buys_mean_reversion(pf: dict, prices: dict, now: datetime, today: str
         if code in existing_codes or code in cd:
             continue
         if code in EXCLUDED_CODES:
+            continue
+        if code in _zt_codes:
             continue
         if cd.get(code) and (now - datetime.strptime(cd[code], "%Y-%m-%d")).days < COOLDOWN_DAYS:
             continue
