@@ -221,6 +221,30 @@ def load_defensive_pool() -> dict:
     except Exception:
         pass
     return {}
+def load_industry_boost() -> dict:
+    """加载行业漏斗结果，加速优质行业标的买入
+    
+    Returns:
+        {code: industry_name} — 属于 top N 行业的股票及其行业名称
+    """
+    funnel_path = os.path.join(BASE, "data", "industry_funnel.json")
+    if not os.path.exists(funnel_path):
+        return {}
+    try:
+        with open(funnel_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        result = {}
+        for ind in data.get("top_industries", []):
+            for s in ind.get("top_stocks", []):
+                code = s.get("code", "")
+                if code:
+                    result[code] = ind.get("board_name", ind.get("name", ""))
+        return result
+    except Exception as e:
+        print(f"  ⚠️ 加载行业漏斗失败: {e}", flush=True)
+        return {}
+
+
 
 
 def load_momentum_pool() -> dict:
@@ -1146,7 +1170,8 @@ def _check_hard_stops(pf: dict, prices: dict, now: datetime, today: str) -> list
 
 def _check_buys_mean_reversion(pf: dict, prices: dict, now: datetime, today: str,
                                 hot_codes: set = None, bb_signals: dict = None,
-                                profile: dict = None, radar_score: float = 50) -> list:
+                                radar_score: float = 50,
+                                industry_boost: dict = None) -> list:
     """均值回归策略买入 — 基于周期低位 + 价格分位 + BB信号"""
     if profile is None:
         profile = load_cycle_profile()
@@ -1173,6 +1198,10 @@ def _check_buys_mean_reversion(pf: dict, prices: dict, now: datetime, today: str
         zone_threshold = 0.45
     if zone_threshold != BUY_ZONE_PCT:
         print(f"   动态阈值: radar={radar_score} zone<={zone_threshold}", flush=True)
+
+    # 行业加速阈值（行业漏斗 top N 股票的标的可以放宽 zone 条件）
+    INDUSTRY_BOOST_DELTA = 0.10  # 行业候选比普通候选多放宽 0.10
+    boost_threshold = min(0.50, zone_threshold + INDUSTRY_BOOST_DELTA)
     
     cd = load_cooldown()
     existing_codes = {p["code"] for p in pf["positions"]}
@@ -1189,10 +1218,17 @@ def _check_buys_mean_reversion(pf: dict, prices: dict, now: datetime, today: str
             continue
         if cd.get(code) and (now - datetime.strptime(cd[code], "%Y-%m-%d")).days < COOLDOWN_DAYS:
             continue
+        is_boosted = industry_boost and code in industry_boost
         if p.get("zone_pct", 1) > zone_threshold:
-            continue
+            if not is_boosted or p.get("zone_pct", 1) > boost_threshold:
+                continue
         vol = p.get("vol_ratio", 1)
         if vol < BUY_VOL_MIN:
+            continue
+        # 行业加速日志
+        if is_boosted:
+            ind_name = industry_boost[code]
+            print(f"    🏭 行业加速 {p['name']}({code}) zone={p['zone_pct']:.1%} <= {boost_threshold:.0%} [{ind_name}]", flush=True)
             continue
         
         # 价格分位过滤器（3年价格分位 > 40% 跳过）
@@ -1235,6 +1271,9 @@ def _check_buys_mean_reversion(pf: dict, prices: dict, now: datetime, today: str
         if hot_codes and code in hot_codes:
             score_bonus = 10
         
+        # 行业漏斗加速加分（+15）
+        if industry_boost and code in industry_boost:
+            score_bonus += 15
         # BB 信号加分
         if bb_action == "strong_buy":
             score_bonus += 15
@@ -1478,7 +1517,8 @@ def _check_buys_defensive(pf: dict, prices: dict, now: datetime, today: str,
 def check_buys(pf: dict, prices: dict, now: datetime, today: str,
                strategy: str = "mean_reversion",
                hot_codes: set = None, bb_signals: dict = None,
-               radar_score: float = 50) -> list:
+               radar_score: float = 50,
+               industry_boost: dict = None) -> list:
     """买入入口 — 双池仲裁（动量回调优先，均值回归后备）
     
     Args:
@@ -1510,13 +1550,13 @@ def check_buys(pf: dict, prices: dict, now: datetime, today: str,
             mr_result = _check_buys_mean_reversion(
                 pf, prices, now, today, hot_codes, bb_signals,
                 profile={c[0]: profile[c[0]] for c in momentum_candidates},
-                radar_score=radar_score)
+                industry_boost=industry_boost)
             if mr_result:
                 return mr_result
         
         return _check_buys_mean_reversion(
             pf, prices, now, today, hot_codes, bb_signals, profile,
-            radar_score=radar_score)
+            industry_boost=industry_boost)
     else:
         return _check_buys_defensive(pf, prices, now, today, hot_codes, bb_signals, profile)
 def scan_once(skip_time_check: bool = False, strategy: str = None) -> dict:
@@ -1570,6 +1610,15 @@ def scan_once(skip_time_check: bool = False, strategy: str = None) -> dict:
                 pass
     except Exception:
         pass
+
+    # ── 行业漏斗加速（优质行业标的优先） ──
+    industry_boost = load_industry_boost()
+    if industry_boost:
+        boosted_names = set(industry_boost.values())
+        print(f"  🏭 行业漏斗: {len(industry_boost)} 只股票来自 {len(boosted_names)} 个优质行业", flush=True)
+        for name in sorted(boosted_names):
+            cnt = sum(1 for v in industry_boost.values() if v == name)
+            print(f"    └ {name}: {cnt} 只", flush=True)
     
     # ── 持仓 BB 信号 ──
     bb_signals = {}
@@ -1604,6 +1653,7 @@ def scan_once(skip_time_check: bool = False, strategy: str = None) -> dict:
     
     # 买入
     buys = check_buys(pf, prices, now, today, strategy=strategy, hot_codes=hot_codes,
+                      industry_boost=industry_boost,
                       bb_signals=bb_signals, radar_score=radar_score)
     if buys:
         print(f"  📈 本轮回合买入: {len(buys)} 笔", flush=True)
