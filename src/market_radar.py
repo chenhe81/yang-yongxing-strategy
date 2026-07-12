@@ -21,7 +21,6 @@ import pandas as pd
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(os.path.dirname(BASE), "data", "market_cache.db")
 from src.tools.hmm_regime import HMMRegimeDetector
-from src.tools.risk_models import GARCHVolatility
 PROFILE_PATH = os.path.join(os.path.dirname(BASE), "data", "cycle_profile.json")
 
 
@@ -288,7 +287,7 @@ def _calc_sentiment_score(market_df: pd.DataFrame) -> tuple:
     return min(15, max(0, score)), label
 
 
-def calculate_radar_score(remote_hmm_score: int = None) -> dict:
+def calculate_radar_score(remote_hmm_score: int = None, remote_garch_score: int = None, remote_garch_label: str = None) -> dict:
     """
     计算行情雷达评分
 
@@ -359,20 +358,15 @@ def calculate_radar_score(remote_hmm_score: int = None) -> dict:
     
     trend_score, trend_label = _calc_trend_score(last_ma5, last_ma20, last_ma60, last_adx)
     vol_score, vol_label, vol_pct = _calc_volatility_score(last_atr, atr_history)
-    # ── GARCH波动率预测（补强波动率评分） ──
-    garch_score = 0
-    garch_label_extra = "GARCH无数据"
-    try:
-        _close = market_df["avg_close"]
-        if len(_close) > 60:
-            _r = _close.pct_change().dropna().values
-            _g = GARCHVolatility()
-            _g.fit(_r)
-            garch_score, garch_label_extra = _g.score_volatility(_r)
-            if garch_score > 0:
-                vol_score = max(0, min(25, int(vol_score * 0.5 + garch_score * 0.5)))
-    except Exception:
-        pass
+    # ── GARCH波动率预测（算力中心远程结果） ──
+    if remote_garch_score is not None:
+        garch_score = remote_garch_score
+        garch_label_extra = remote_garch_label or "GARCH无数据"
+        if garch_score > 0:
+            vol_score = max(0, min(25, int(vol_score * 0.5 + garch_score * 0.5)))
+    else:
+        garch_score = 0
+        garch_label_extra = "GARCH离线"
     vol_health_score, vol_health_label = _calc_volume_health_score(market_df)
     sent_score, sent_label = _calc_sentiment_score(market_df)
 

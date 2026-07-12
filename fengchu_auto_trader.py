@@ -388,6 +388,52 @@ def _fetch_hmm_status() -> dict | None:
         _HMM_TRIED_TODAY = True
         print(f"  ⚠️ 读取HMM状态失败: {e}", flush=True)
         return None
+# ── GARCH波动率（通过 SSH 读取算力中心 183.131.24.109 的 GARCH 分析结果，每个交易日缓存一次） ──
+_GARCH_CACHE = None
+_GARCH_CACHE_DATE = None
+_GARCH_TRIED_TODAY = False
+
+def _fetch_garch_status() -> dict | None:
+    """读取算力中心 GARCH 波动率分析结果，缓存一天
+    
+    返回: {
+        "garch_score": int,       # 0-25 雷达分
+        "garch_label": str,
+        "pred_annual_vol_pct": float,
+        "date": str,
+        ...
+    }
+    """
+    global _GARCH_CACHE, _GARCH_CACHE_DATE, _GARCH_TRIED_TODAY
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _GARCH_CACHE_DATE == today:
+        if _GARCH_CACHE is not None:
+            return _GARCH_CACHE
+        if _GARCH_TRIED_TODAY:
+            return None
+    else:
+        _GARCH_TRIED_TODAY = False
+    try:
+        result = subprocess.run(
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", "-p", "3100",
+             "arcvideo@183.131.24.109",
+             "cat /home/arcvideo/garch_analysis/output/latest.json"],
+            capture_output=True, text=True, timeout=10
+        )
+        _GARCH_TRIED_TODAY = True
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        data = json.loads(result.stdout)
+        if data.get("date") != today:
+            return None
+        _GARCH_CACHE = data
+        _GARCH_CACHE_DATE = today
+        return data
+    except Exception as e:
+        _GARCH_TRIED_TODAY = True
+        print(f"  ⚠️ 读取GARCH数据失败: {e}", flush=True)
+        return None
+
 
 def fetch_enhanced_score() -> dict:
     """获取增强评分（含热点板块、行业趋势等）
@@ -408,7 +454,10 @@ def fetch_enhanced_score() -> dict:
         hmm_data = _fetch_hmm_status()
         remote_hmm_score = hmm_data.get("hmm_score") if hmm_data else None
 
-        radar = calculate_radar_score(remote_hmm_score=remote_hmm_score)
+        garch_data = _fetch_garch_status()
+        remote_garch_score = garch_data.get("garch_score") if garch_data else None
+        remote_garch_label = garch_data.get("garch_label") if garch_data else None
+        radar = calculate_radar_score(remote_hmm_score=remote_hmm_score, remote_garch_score=remote_garch_score, remote_garch_label=remote_garch_label)
         if radar and "score" in radar:
             result = {
                 "score": radar.get("score", 50),
